@@ -635,7 +635,7 @@
         outline-offset: 2px;
       }
 
-      /* ── Desktop gutter (direction A, ≥ 700px) ────────────────────────── */
+      /* ── Desktop gutter (direction A, ≥ 1240px) ───────────────────────── */
       .grid-wrap {
         position: relative;
       }
@@ -677,7 +677,13 @@
         max-width: 120px;
       }
 
-      @media (max-width: 699px) {
+      /* The gutter sits outside the 900px-max, centered .grid-wrap (left:100%,
+         width:160px). It only fits without widening the page once the right
+         margin can hold 160px — i.e. viewport ≥ ~1220px. Below that, hide it
+         and fall back to the chips/timeline list (direction C). The prior
+         ≥700px breakpoint forced a page-wide horizontal scrollbar across the
+         whole 700–1200px laptop band. */
+      @media (max-width: 1239px) {
         #ms-gutter {
           display: none;
         }
@@ -1491,10 +1497,10 @@
         }, "image/png");
       }
 
-      // ── Milestone: gutter alignment (direction A, desktop ≥ 700px) ───────
+      // ── Milestone: gutter alignment (direction A, desktop ≥ 1240px) ──────
       // Reads each pinned dot’s measured Y relative to .grid-wrap and positions
       // the corresponding gutter flag. O(milestones ≤ MAX_MILESTONES).
-      // No-ops when the gutter is display:none (< 700px).
+      // No-ops when the gutter is display:none (< 1240px, direction C).
       let alignGutterRaf = null;
 
       function alignGutter() {
