@@ -2,6 +2,7 @@
   "stack": "Static HTML + CSS + vanilla JS, Cloudflare Pages (no build step)",
   "docs": {
     "hld": "CLAUDE.md",
+    "cx": "docs/customer-experience.md",
     "lldDir": "docs/lld/",
     "mockupDir": "design-mockups/"
   },
