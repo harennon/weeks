@@ -7,6 +7,10 @@
   },
   "hasFrontend": true,
   "mockupPort": 8092,
+  "mockupHosting": {
+    "branch": "gh-pages",
+    "baseUrl": "https://harennon.github.io/weeks/"
+  },
   "defaultBranch": "main",
   "frontendPaths": ["src/"],
   "proposal": {
