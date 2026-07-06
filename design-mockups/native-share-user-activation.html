@@ -1,0 +1,780 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>weeks — native Share fix · share-sheet states</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Libre+Baskerville:ital@0;1&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      /* ── Design tokens (from src/index.html) ──────────────────────────── */
+      :root {
+        --bg-page: #1a1a1f;
+        --text-primary: #f0f0f0;
+        --text-muted: rgba(255, 255, 255, 0.45);
+        --accent-gold: #c9a84c;
+        --dot-lived: #c9a84c;
+        --dot-current: #f5f0e8;
+        --dot-future: rgba(255, 255, 255, 0.12);
+        --font-display: "DM Sans", system-ui, sans-serif;
+        --font-serif: "Libre Baskerville", Georgia, serif;
+        --ok: #7bbf7b;
+        --warn: #d98b5f;
+      }
+
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+
+      body {
+        background-color: var(--bg-page);
+        background-image: radial-gradient(
+          circle,
+          rgba(255, 255, 255, 0.04) 1px,
+          transparent 1px
+        );
+        background-size: 32px 32px;
+        color: var(--text-primary);
+        font-family: var(--font-display);
+        line-height: 1.5;
+        min-height: 100vh;
+        padding: clamp(1.5rem, 4vw, 3rem);
+      }
+
+      .page {
+        max-width: 1100px;
+        margin: 0 auto;
+      }
+
+      header.doc {
+        text-align: center;
+        margin-bottom: 0.5rem;
+      }
+
+      header.doc h1 {
+        font-family: var(--font-serif);
+        font-weight: 400;
+        font-size: clamp(1.6rem, 4vw, 2.4rem);
+        letter-spacing: -0.01em;
+      }
+      header.doc h1 em { color: var(--accent-gold); }
+
+      header.doc .sub {
+        color: var(--text-muted);
+        margin-top: 0.4rem;
+        font-size: 0.95rem;
+        max-width: 620px;
+        margin-left: auto;
+        margin-right: auto;
+      }
+
+      /* ── Explainer / why this matters ─────────────────────────────────── */
+      .explainer {
+        margin: 2rem auto 2.5rem;
+        max-width: 760px;
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 14px;
+        padding: 1.25rem 1.4rem;
+        font-size: 0.9rem;
+      }
+      .explainer h2 {
+        font-family: var(--font-serif);
+        font-weight: 400;
+        font-size: 1.05rem;
+        margin-bottom: 0.6rem;
+      }
+      .explainer .row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+        margin-top: 0.85rem;
+      }
+      @media (max-width: 620px) { .explainer .row { grid-template-columns: 1fr; } }
+      .explainer .col {
+        border-radius: 10px;
+        padding: 0.75rem 0.9rem;
+        font-size: 0.82rem;
+        line-height: 1.5;
+      }
+      .explainer .col.bad {
+        border: 1px solid rgba(217, 139, 95, 0.4);
+        background: rgba(217, 139, 95, 0.07);
+      }
+      .explainer .col.good {
+        border: 1px solid rgba(123, 191, 123, 0.35);
+        background: rgba(123, 191, 123, 0.07);
+      }
+      .explainer .col .tag {
+        display: inline-block;
+        font-size: 0.68rem;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        font-weight: 700;
+        margin-bottom: 0.4rem;
+      }
+      .explainer .col.bad .tag { color: var(--warn); }
+      .explainer .col.good .tag { color: var(--ok); }
+      code {
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 0.82em;
+        background: rgba(255, 255, 255, 0.08);
+        padding: 0.05em 0.35em;
+        border-radius: 4px;
+        color: var(--dot-current);
+      }
+
+      /* ── Options layout ───────────────────────────────────────────────── */
+      .options {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 2rem;
+        align-items: start;
+        margin-bottom: 3rem;
+      }
+      @media (max-width: 860px) { .options { grid-template-columns: 1fr; } }
+
+      .option-head {
+        margin-bottom: 1rem;
+      }
+      .option-head .kicker {
+        font-size: 0.72rem;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        color: var(--accent-gold);
+        font-weight: 700;
+      }
+      .option-head h3 {
+        font-family: var(--font-serif);
+        font-weight: 400;
+        font-size: 1.3rem;
+        margin: 0.2rem 0 0.4rem;
+      }
+      .option-head p {
+        color: var(--text-muted);
+        font-size: 0.85rem;
+      }
+
+      /* ── The share sheet (ported from src/index.html) ─────────────────── */
+      .sheet {
+        background: #23232a;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 20px;
+        padding: 1.5rem;
+        display: flex;
+        flex-direction: column;
+        gap: 1.25rem;
+        box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
+      }
+
+      .sheet-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .sheet-header h2 {
+        font-family: var(--font-serif);
+        font-weight: 400;
+        font-size: 1.15rem;
+        letter-spacing: -0.01em;
+      }
+      .sheet-close {
+        background: transparent;
+        border: none;
+        color: var(--text-muted);
+        font-size: 1.4rem;
+        line-height: 1;
+        cursor: pointer;
+        padding: 0.25rem 0.4rem;
+        border-radius: 6px;
+      }
+      .sheet-close:hover { color: var(--text-primary); }
+
+      .format-toggle { display: flex; gap: 0.5rem; }
+      .format-toggle button {
+        flex: 1;
+        background: rgba(255, 255, 255, 0.06);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 8px;
+        color: var(--text-muted);
+        font-family: var(--font-display);
+        font-size: 0.8rem;
+        font-weight: 500;
+        padding: 0.45rem 0.5rem;
+        cursor: pointer;
+        transition: background 0.12s, color 0.12s, border-color 0.12s;
+      }
+      .format-toggle button[aria-pressed="true"] {
+        background: rgba(201, 168, 76, 0.15);
+        border-color: var(--accent-gold);
+        color: var(--accent-gold);
+      }
+      .format-toggle button:hover:not([aria-pressed="true"]) {
+        background: rgba(255, 255, 255, 0.1);
+        color: var(--text-primary);
+      }
+
+      /* Canvas preview — faked with a static grid render for the mockup */
+      .preview {
+        background: rgba(0, 0, 0, 0.25);
+        border-radius: 12px;
+        overflow: hidden;
+        width: 100%;
+        aspect-ratio: 4 / 5;
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .preview .fake-canvas {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 0.6rem;
+        padding: 1.2rem;
+      }
+      .preview .fc-title {
+        font-family: var(--font-serif);
+        font-size: 0.95rem;
+      }
+      .preview .fc-title em { color: var(--accent-gold); font-style: italic; }
+      .preview .fc-pct {
+        font-family: var(--font-serif);
+        font-size: 2.6rem;
+        color: var(--accent-gold);
+        line-height: 1;
+      }
+      .preview .fc-sub { color: var(--text-muted); font-size: 0.72rem; }
+      .preview .fc-grid {
+        display: grid;
+        grid-template-columns: repeat(26, 1fr);
+        gap: 2px;
+        width: 78%;
+        margin-top: 0.4rem;
+      }
+      .preview .fc-grid i {
+        aspect-ratio: 1;
+        border-radius: 50%;
+        background: var(--dot-future);
+      }
+      .preview .fc-grid i.l { background: var(--dot-lived); }
+      .preview .fc-wm { color: var(--accent-gold); font-size: 0.6rem; margin-top: 0.5rem; }
+
+      /* Shimmer overlay while (re)painting the preview canvas */
+      .preview .shimmer {
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(
+          100deg,
+          transparent 30%,
+          rgba(255, 255, 255, 0.06) 50%,
+          transparent 70%
+        );
+        background-size: 220% 100%;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.15s;
+      }
+      .sheet[data-state="preparing"] .preview .shimmer {
+        opacity: 1;
+        animation: shimmer 1.05s linear infinite;
+      }
+      @keyframes shimmer {
+        from { background-position: 120% 0; }
+        to { background-position: -120% 0; }
+      }
+
+      .sheet-actions {
+        display: flex;
+        flex-direction: column;
+        gap: 0.65rem;
+      }
+
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        font-family: var(--font-display);
+        font-size: 0.925rem;
+        font-weight: 500;
+        border-radius: 999px;
+        padding: 0.7rem 1.25rem;
+        width: 100%;
+        cursor: pointer;
+        transition: box-shadow 0.15s, opacity 0.15s, background 0.15s, transform 0.1s;
+        position: relative;
+      }
+
+      .btn-download {
+        background: var(--accent-gold);
+        border: none;
+        color: #1a1a1f;
+        font-weight: 700;
+      }
+      .btn-download:hover { box-shadow: 0 0 0 3px rgba(201, 168, 76, 0.35); }
+
+      .btn-native-share {
+        background: rgba(255, 255, 255, 0.07);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        color: var(--text-primary);
+      }
+      .btn-native-share:hover:not(:disabled) { background: rgba(255, 255, 255, 0.12); }
+
+      /* Spinner used by the "preparing" state */
+      .spinner {
+        width: 0.95em;
+        height: 0.95em;
+        border-radius: 50%;
+        border: 2px solid rgba(255, 255, 255, 0.25);
+        border-top-color: var(--text-primary);
+        animation: spin 0.7s linear infinite;
+        flex-shrink: 0;
+      }
+      @keyframes spin { to { transform: rotate(360deg); } }
+
+      /* small share glyph */
+      .ico {
+        width: 0.95em; height: 0.95em; flex-shrink: 0;
+      }
+
+      .privacy-hint {
+        display: flex;
+        align-items: flex-start;
+        gap: 0.4rem;
+        font-size: 0.75rem;
+        color: var(--text-muted);
+        line-height: 1.4;
+      }
+
+      /* ── OPTION A: single button that morphs (label swap) ─────────────── */
+      /* Idle */
+      .sheet[data-opt="a"][data-state="idle"] .btn-native-share .lbl-idle { display: inline; }
+      .sheet[data-opt="a"][data-state="idle"] .btn-native-share .lbl-preparing,
+      .sheet[data-opt="a"][data-state="idle"] .btn-native-share .lbl-retry { display: none; }
+      .sheet[data-opt="a"][data-state="idle"] .btn-native-share .spinner { display: none; }
+
+      /* Preparing — disabled, spinner, quiet */
+      .sheet[data-opt="a"][data-state="preparing"] .btn-native-share { opacity: 0.6; cursor: progress; }
+      .sheet[data-opt="a"][data-state="preparing"] .btn-native-share .lbl-idle,
+      .sheet[data-opt="a"][data-state="preparing"] .btn-native-share .lbl-retry,
+      .sheet[data-opt="a"][data-state="preparing"] .btn-native-share .ico { display: none; }
+      .sheet[data-opt="a"][data-state="preparing"] .btn-native-share .lbl-preparing { display: inline; }
+      .sheet[data-opt="a"][data-state="preparing"] .btn-download { opacity: 0.6; }
+
+      /* Failed — button turns into a retry affordance */
+      .sheet[data-opt="a"][data-state="failed"] .btn-native-share {
+        border-color: rgba(217, 139, 95, 0.55);
+        color: var(--warn);
+      }
+      .sheet[data-opt="a"][data-state="failed"] .btn-native-share .lbl-idle,
+      .sheet[data-opt="a"][data-state="failed"] .btn-native-share .lbl-preparing,
+      .sheet[data-opt="a"][data-state="failed"] .btn-native-share .spinner { display: none; }
+      .sheet[data-opt="a"][data-state="failed"] .btn-native-share .lbl-retry { display: inline; }
+
+      /* ── OPTION B: instant share, no visible prep; download is the safety net ── */
+      /* Button is always live-looking; prep happens invisibly, and if the
+         cached file isn't ready yet the click just re-triggers prep+share.
+         Failure demotes to a persistent inline hint above Download. */
+      .fallback-note {
+        display: none;
+        align-items: flex-start;
+        gap: 0.45rem;
+        font-size: 0.78rem;
+        line-height: 1.45;
+        color: var(--warn);
+        background: rgba(217, 139, 95, 0.08);
+        border: 1px solid rgba(217, 139, 95, 0.3);
+        border-radius: 10px;
+        padding: 0.55rem 0.7rem;
+      }
+      .sheet[data-opt="b"][data-state="failed"] .fallback-note { display: flex; }
+      .sheet[data-opt="b"][data-state="failed"] .btn-download {
+        box-shadow: 0 0 0 2px rgba(201, 168, 76, 0.5);
+      }
+      .fallback-note .arrow { color: var(--accent-gold); font-weight: 700; }
+
+      /* ── State control chips ──────────────────────────────────────────── */
+      .state-controls {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.4rem;
+        margin-top: 1rem;
+      }
+      .state-controls .lbl {
+        font-size: 0.72rem;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--text-muted);
+        align-self: center;
+        margin-right: 0.3rem;
+      }
+      .chip {
+        background: rgba(255, 255, 255, 0.06);
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        color: var(--text-muted);
+        border-radius: 999px;
+        font-family: var(--font-display);
+        font-size: 0.75rem;
+        font-weight: 500;
+        padding: 0.3rem 0.75rem;
+        cursor: pointer;
+      }
+      .chip.active {
+        background: rgba(201, 168, 76, 0.15);
+        border-color: var(--accent-gold);
+        color: var(--accent-gold);
+      }
+
+      .caption {
+        margin-top: 0.9rem;
+        font-size: 0.8rem;
+        color: var(--text-muted);
+        min-height: 2.4em;
+      }
+      .caption strong { color: var(--text-primary); font-weight: 500; }
+
+      /* ── Toast (ported) ───────────────────────────────────────────────── */
+      .toast {
+        position: fixed;
+        bottom: 2rem;
+        left: 50%;
+        transform: translateX(-50%) translateY(0.5rem);
+        background: rgba(255, 255, 255, 0.12);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        backdrop-filter: blur(8px);
+        border-radius: 999px;
+        color: var(--text-primary);
+        font-size: 0.875rem;
+        font-weight: 500;
+        padding: 0.55rem 1.25rem;
+        z-index: 200;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.2s, transform 0.2s;
+      }
+      .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+      footer.doc {
+        text-align: center;
+        color: var(--text-muted);
+        font-size: 0.8rem;
+        margin-top: 1rem;
+        padding-top: 1.5rem;
+        border-top: 1px solid rgba(255, 255, 255, 0.08);
+      }
+      .rec {
+        display: inline-block;
+        margin-top: 0.6rem;
+        background: rgba(201, 168, 76, 0.12);
+        border: 1px solid rgba(201, 168, 76, 0.4);
+        color: var(--accent-gold);
+        border-radius: 999px;
+        padding: 0.35rem 0.9rem;
+        font-size: 0.8rem;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <header class="doc">
+        <h1>Native <em>Share…</em> — the fix, made visible</h1>
+        <p class="sub">
+          The share sheet from <code>src/index.html</code>, showing how the
+          <em>pre-rendered file</em> fix changes the button lifecycle. Use the
+          state chips under each option to preview idle / preparing / failed.
+        </p>
+      </header>
+
+      <!-- ── Root-cause explainer ──────────────────────────────────────── -->
+      <section class="explainer">
+        <h2>Why it broke, and what the UI has to express</h2>
+        <p>
+          <code>navigator.share()</code> needs <strong>transient user
+          activation</strong> — it must run synchronously inside the click.
+          Today it runs inside the async <code>toBlob()</code> callback, so the
+          gesture has expired and the browser rejects with
+          <code>NotAllowedError</code>. The fix pre-renders the PNG
+          <code>File</code> ahead of the tap, so the click calls
+          <code>share()</code> directly. The only new UI concept is a
+          <strong>"file readiness"</strong> state on the Share button.
+        </p>
+        <div class="row">
+          <div class="col bad">
+            <span class="tag">Before — broken</span>
+            click → <code>toBlob()</code> (async) → <code>share()</code> fires on
+            a later task → activation gone → generic "Couldn't share" toast.
+          </div>
+          <div class="col good">
+            <span class="tag">After — fixed</span>
+            sheet opens / format toggled → render <code>File</code> &amp; cache it
+            → click reads cached file → <code>share()</code> fires
+            <em>synchronously</em> → OS sheet opens.
+          </div>
+        </div>
+      </section>
+
+      <!-- ── Two options ───────────────────────────────────────────────── -->
+      <section class="options">
+        <!-- OPTION A -->
+        <div>
+          <div class="option-head">
+            <span class="kicker">Option A</span>
+            <h3>Explicit readiness</h3>
+            <p>
+              The Share button reflects file state: it shows a brief
+              <em>Preparing…</em> spinner while the cached PNG renders, then
+              becomes tappable. Honest about the async work; guarantees the tap
+              only fires when a file exists.
+            </p>
+          </div>
+
+          <div class="sheet" data-opt="a" data-state="idle" id="sheet-a">
+            <div class="sheet-header">
+              <h2>Save a snapshot</h2>
+              <button class="sheet-close" aria-label="Close">&times;</button>
+            </div>
+
+            <div class="format-toggle" role="group" aria-label="Layout">
+              <button aria-pressed="true">Both</button>
+              <button aria-pressed="false">Full grid</button>
+              <button aria-pressed="false">Summary card</button>
+            </div>
+
+            <div class="preview">
+              <div class="fake-canvas">
+                <div class="fc-title">your life in <em>weeks</em></div>
+                <div class="fc-pct">38%</div>
+                <div class="fc-sub">of my life, elapsed</div>
+                <div class="fc-grid" id="grid-a"></div>
+                <div class="fc-wm">weeks.danbing.app</div>
+              </div>
+              <div class="shimmer"></div>
+            </div>
+
+            <div class="sheet-actions">
+              <button class="btn btn-download">Download PNG</button>
+              <button class="btn btn-native-share" id="share-a">
+                <span class="spinner" aria-hidden="true"></span>
+                <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7"/>
+                  <polyline points="8 7 12 3 16 7"/>
+                  <line x1="12" y1="3" x2="12" y2="15"/>
+                </svg>
+                <span class="lbl-idle">Share&hellip;</span>
+                <span class="lbl-preparing">Preparing image&hellip;</span>
+                <span class="lbl-retry">Share&hellip; (tap to retry)</span>
+              </button>
+              <p class="privacy-hint">
+                <span aria-hidden="true">&#x1F512;</span>
+                <span>Rendered entirely in your browser. Your birthday is never sent anywhere.</span>
+              </p>
+            </div>
+          </div>
+
+          <div class="state-controls" data-target="sheet-a">
+            <span class="lbl">State</span>
+            <button class="chip active" data-state="idle">idle (ready)</button>
+            <button class="chip" data-state="preparing">preparing</button>
+            <button class="chip" data-state="failed">share failed</button>
+          </div>
+          <p class="caption" id="cap-a">
+            <strong>Idle / ready:</strong> the cached <code>File</code> exists,
+            so a tap calls <code>share()</code> synchronously. This is the
+            steady state — the OS sheet opens instantly.
+          </p>
+        </div>
+
+        <!-- OPTION B -->
+        <div>
+          <div class="option-head">
+            <span class="kicker">Option B</span>
+            <h3>Invisible prep, silent recovery</h3>
+            <p>
+              The Share button never changes appearance. Prep happens silently
+              in the background; a tap always uses the freshest cached file.
+              Failure is rare — when it happens, a quiet inline hint points at
+              Download instead of a disappearing toast.
+            </p>
+          </div>
+
+          <div class="sheet" data-opt="b" data-state="idle" id="sheet-b">
+            <div class="sheet-header">
+              <h2>Save a snapshot</h2>
+              <button class="sheet-close" aria-label="Close">&times;</button>
+            </div>
+
+            <div class="format-toggle" role="group" aria-label="Layout">
+              <button aria-pressed="true">Both</button>
+              <button aria-pressed="false">Full grid</button>
+              <button aria-pressed="false">Summary card</button>
+            </div>
+
+            <div class="preview">
+              <div class="fake-canvas">
+                <div class="fc-title">your life in <em>weeks</em></div>
+                <div class="fc-pct">38%</div>
+                <div class="fc-sub">of my life, elapsed</div>
+                <div class="fc-grid" id="grid-b"></div>
+                <div class="fc-wm">weeks.danbing.app</div>
+              </div>
+              <div class="shimmer"></div>
+            </div>
+
+            <div class="sheet-actions">
+              <p class="fallback-note">
+                <span class="arrow">&#8593;</span>
+                <span>Sharing wasn't available. <strong>Download PNG</strong> above works everywhere — save it, then share from your gallery.</span>
+              </p>
+              <button class="btn btn-download">Download PNG</button>
+              <button class="btn btn-native-share" id="share-b">
+                <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7"/>
+                  <polyline points="8 7 12 3 16 7"/>
+                  <line x1="12" y1="3" x2="12" y2="15"/>
+                </svg>
+                <span>Share&hellip;</span>
+              </button>
+              <p class="privacy-hint">
+                <span aria-hidden="true">&#x1F512;</span>
+                <span>Rendered entirely in your browser. Your birthday is never sent anywhere.</span>
+              </p>
+            </div>
+          </div>
+
+          <div class="state-controls" data-target="sheet-b">
+            <span class="lbl">State</span>
+            <button class="chip active" data-state="idle">idle (ready)</button>
+            <button class="chip" data-state="preparing">preparing (silent)</button>
+            <button class="chip" data-state="failed">share failed</button>
+          </div>
+          <p class="caption" id="cap-b">
+            <strong>Idle / ready:</strong> button looks identical at all times.
+            The cached file is refreshed on open and on every format toggle;
+            the tap reads whatever is cached. Lowest chrome.
+          </p>
+        </div>
+      </section>
+
+      <footer class="doc">
+        <p>
+          Both options share the same underlying fix (pre-rendered cached
+          <code>File</code>, synchronous <code>share()</code> in the click).
+          They differ only in how much of the "file readiness" state the UI
+          exposes.
+        </p>
+        <span class="rec">Recommendation: Option A — the spinner keeps the tap honest and covers the cold-font-load repaint window.</span>
+      </footer>
+    </div>
+
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+    <script>
+      // ── Fake preview grid (26 cols so it reads as a mini life-grid) ──────
+      function fillGrid(el, litFraction) {
+        const total = 26 * 22;
+        const lit = Math.floor(total * litFraction);
+        let html = "";
+        for (let i = 0; i < total; i++) {
+          html += "<i class='" + (i < lit ? "l" : "") + "'></i>";
+        }
+        el.innerHTML = html;
+      }
+      fillGrid(document.getElementById("grid-a"), 0.38);
+      fillGrid(document.getElementById("grid-b"), 0.38);
+
+      // ── Captions per state ───────────────────────────────────────────────
+      const CAPTIONS = {
+        a: {
+          idle:
+            "<strong>Idle / ready:</strong> the cached <code>File</code> exists, so a tap calls <code>share()</code> synchronously. This is the steady state — the OS sheet opens instantly.",
+          preparing:
+            "<strong>Preparing:</strong> the PNG is being rendered to a <code>File</code> right now (e.g. right after opening the sheet or toggling format). The button is disabled with a spinner so a tap can't fire before a file exists. Normally lasts a frame or two; longer only on cold web-font load.",
+          failed:
+            "<strong>Share failed:</strong> the OS rejected the share for a real reason (not a user cancel). The button turns into a retry affordance and a toast points to Download. User-cancel (<code>AbortError</code>) is still swallowed silently — no error shown.",
+        },
+        b: {
+          idle:
+            "<strong>Idle / ready:</strong> button looks identical at all times. The cached file is refreshed on open and on every format toggle; the tap reads whatever is cached. Lowest chrome.",
+          preparing:
+            "<strong>Preparing (silent):</strong> prep runs in the background with no button change — only the preview shimmers. If a tap lands before the file is cached, the handler falls back to rendering-then-sharing (which risks the same activation loss), so Option B leans on prep finishing fast.",
+          failed:
+            "<strong>Share failed:</strong> instead of a transient toast, a persistent inline note appears above a highlighted Download button — the recovery path stays on screen. User-cancel is still silent.",
+        },
+      };
+
+      function setState(sheetId, state) {
+        const sheet = document.getElementById(sheetId);
+        sheet.setAttribute("data-state", state);
+        const opt = sheet.getAttribute("data-opt");
+        document.getElementById("cap-" + opt).innerHTML = CAPTIONS[opt][state];
+        // toast only for option A failure, to show that path
+        if (opt === "a" && state === "failed") {
+          showToast("Couldn’t open the share sheet — try Download");
+        }
+      }
+
+      document.querySelectorAll(".state-controls").forEach((ctrl) => {
+        const target = ctrl.getAttribute("data-target");
+        ctrl.querySelectorAll(".chip").forEach((chip) => {
+          chip.addEventListener("click", () => {
+            ctrl.querySelectorAll(".chip").forEach((c) => c.classList.remove("active"));
+            chip.classList.add("active");
+            setState(target, chip.getAttribute("data-state"));
+          });
+        });
+      });
+
+      // Format toggle demo — flips aria-pressed and briefly shows "preparing"
+      // in Option A to illustrate that a toggle re-renders the cached file.
+      document.querySelectorAll(".format-toggle").forEach((tg) => {
+        const sheet = tg.closest(".sheet");
+        tg.querySelectorAll("button").forEach((b) => {
+          b.addEventListener("click", () => {
+            tg.querySelectorAll("button").forEach((x) => x.setAttribute("aria-pressed", "false"));
+            b.setAttribute("aria-pressed", "true");
+            if (sheet.getAttribute("data-opt") === "a") {
+              const ctrl = document.querySelector('[data-target="' + sheet.id + '"]');
+              ctrl.querySelectorAll(".chip").forEach((c) => c.classList.remove("active"));
+              ctrl.querySelector('[data-state="preparing"]').classList.add("active");
+              setState(sheet.id, "preparing");
+              setTimeout(() => {
+                ctrl.querySelectorAll(".chip").forEach((c) => c.classList.remove("active"));
+                ctrl.querySelector('[data-state="idle"]').classList.add("active");
+                setState(sheet.id, "idle");
+              }, 650);
+            } else {
+              // Option B: only the preview shimmers, button unchanged
+              sheet.setAttribute("data-state", "preparing");
+              setTimeout(() => sheet.setAttribute("data-state", "idle"), 650);
+            }
+          });
+        });
+      });
+
+      // Share button demo taps
+      document.getElementById("share-a").addEventListener("click", () => {
+        const sheet = document.getElementById("sheet-a");
+        if (sheet.getAttribute("data-state") === "idle") showToast("Opening share sheet… ✓");
+        else if (sheet.getAttribute("data-state") === "failed") showToast("Retrying share…");
+      });
+      document.getElementById("share-b").addEventListener("click", () => {
+        showToast("Opening share sheet… ✓");
+      });
+
+      let toastTimer = null;
+      function showToast(msg) {
+        const t = document.getElementById("toast");
+        t.textContent = msg;
+        t.classList.add("show");
+        if (toastTimer) clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => t.classList.remove("show"), 2200);
+      }
+    </script>
+  </body>
+</html>
