@@ -1,0 +1,340 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>weeks — your life in weeks</title>
+    <meta
+      name="description"
+      content="Your whole life as a scrollable grid of weeks. Enter your birthday and see how many you've lived — and how many might be left."
+    />
+    <link
+      rel="preconnect"
+      href="https://fonts.googleapis.com"
+    />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Libre+Baskerville:ital@0;1&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      /* ── Design tokens (echo the danbing.app portfolio language) ───────── */
+      :root {
+        --bg-page: #1a1a1f;
+        --text-primary: #f0f0f0;
+        --text-muted: rgba(255, 255, 255, 0.45);
+        --accent-gold: #c9a84c;
+        --dot-lived: #c9a84c;
+        --dot-current: #f5f0e8;
+        --dot-future: rgba(255, 255, 255, 0.12);
+        --font-display: "DM Sans", system-ui, sans-serif;
+        --font-serif: "Libre Baskerville", Georgia, serif;
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        background-color: var(--bg-page);
+        background-image: radial-gradient(
+          circle,
+          rgba(255, 255, 255, 0.04) 1px,
+          transparent 1px
+        );
+        background-size: 32px 32px;
+        color: var(--text-primary);
+        font-family: var(--font-display);
+        line-height: 1.5;
+        min-height: 100vh;
+        padding: clamp(1.5rem, 4vw, 3rem);
+      }
+
+      header {
+        max-width: 900px;
+        margin: 0 auto 2rem;
+        text-align: center;
+      }
+
+      h1 {
+        font-family: var(--font-serif);
+        font-weight: 400;
+        font-size: clamp(2rem, 6vw, 3.25rem);
+        letter-spacing: -0.01em;
+      }
+
+      h1 em {
+        color: var(--accent-gold);
+      }
+
+      .tagline {
+        color: var(--text-muted);
+        margin-top: 0.5rem;
+        font-size: clamp(0.95rem, 2.5vw, 1.1rem);
+      }
+
+      /* ── Controls ──────────────────────────────────────────────────────── */
+      .controls {
+        max-width: 900px;
+        margin: 0 auto 2.5rem;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1.25rem;
+        align-items: flex-end;
+        justify-content: center;
+      }
+
+      .field {
+        display: flex;
+        flex-direction: column;
+        gap: 0.35rem;
+      }
+
+      .field label {
+        font-size: 0.8rem;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--text-muted);
+      }
+
+      .field input[type="date"],
+      .field input[type="number"] {
+        background: rgba(255, 255, 255, 0.06);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        border-radius: 8px;
+        color: var(--text-primary);
+        font-family: var(--font-display);
+        font-size: 1rem;
+        padding: 0.55rem 0.75rem;
+        color-scheme: dark;
+      }
+
+      .field input:focus-visible {
+        outline: 2px solid var(--accent-gold);
+        outline-offset: 1px;
+      }
+
+      /* ── Stats ─────────────────────────────────────────────────────────── */
+      .stats {
+        max-width: 900px;
+        margin: 0 auto 2rem;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+        gap: 1rem;
+      }
+
+      .stat {
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 12px;
+        padding: 1rem 1.25rem;
+        text-align: center;
+      }
+
+      .stat .value {
+        font-family: var(--font-serif);
+        font-size: clamp(1.5rem, 4vw, 2.25rem);
+        color: var(--accent-gold);
+      }
+
+      .stat .label {
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--text-muted);
+        margin-top: 0.25rem;
+      }
+
+      /* ── The grid ──────────────────────────────────────────────────────── */
+      .grid-wrap {
+        max-width: 900px;
+        margin: 0 auto;
+      }
+
+      .grid-meta {
+        display: flex;
+        justify-content: space-between;
+        color: var(--text-muted);
+        font-size: 0.8rem;
+        margin-bottom: 0.75rem;
+      }
+
+      /* 52 weeks per row = one year per row. Dots scale to fit. */
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(52, 1fr);
+        gap: clamp(2px, 0.4vw, 4px);
+      }
+
+      .wk {
+        aspect-ratio: 1;
+        border-radius: 50%;
+        background: var(--dot-future);
+      }
+      .wk.lived {
+        background: var(--dot-lived);
+      }
+      .wk.current {
+        background: var(--dot-current);
+        box-shadow: 0 0 0 2px var(--accent-gold);
+      }
+
+      .empty-state {
+        text-align: center;
+        color: var(--text-muted);
+        padding: 3rem 1rem;
+        font-style: italic;
+        font-family: var(--font-serif);
+      }
+
+      footer {
+        max-width: 900px;
+        margin: 3rem auto 0;
+        text-align: center;
+        color: var(--text-muted);
+        font-size: 0.8rem;
+      }
+
+      footer a {
+        color: var(--accent-gold);
+      }
+
+      .privacy {
+        margin-bottom: 0.5rem;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>your life in <em>weeks</em></h1>
+      <p class="tagline">
+        Every dot is one week. The gold ones are behind you.
+      </p>
+    </header>
+
+    <div class="controls">
+      <div class="field">
+        <label for="birthday">Your birthday</label>
+        <input type="date" id="birthday" />
+      </div>
+      <div class="field">
+        <label for="lifespan">Lifespan (years)</label>
+        <input type="number" id="lifespan" min="1" max="120" value="90" />
+      </div>
+    </div>
+
+    <section class="stats" id="stats" hidden>
+      <div class="stat">
+        <div class="value" id="stat-lived">—</div>
+        <div class="label">weeks lived</div>
+      </div>
+      <div class="stat">
+        <div class="value" id="stat-remaining">—</div>
+        <div class="label">weeks remaining</div>
+      </div>
+      <div class="stat">
+        <div class="value" id="stat-pct">—</div>
+        <div class="label">% elapsed</div>
+      </div>
+    </section>
+
+    <div class="grid-wrap">
+      <div class="grid-meta" id="grid-meta" hidden>
+        <span>each row = one year (52 weeks)</span>
+        <span id="grid-span"></span>
+      </div>
+      <div class="grid" id="grid" role="img" aria-label="Life in weeks grid"></div>
+      <p class="empty-state" id="empty">
+        Enter your birthday above to see your weeks.
+      </p>
+    </div>
+
+    <footer>
+      <p class="privacy">
+        Everything stays in your browser. Your birthday is never sent anywhere —
+        it lives only in this page's URL so you can bookmark or share it.
+      </p>
+      <p>
+        a <a href="https://danbing.app">danbing.app</a> toy · inspired by Tim
+        Urban's “Your Life in Weeks”
+      </p>
+    </footer>
+
+    <script>
+      // weeks — client-side only. State (birthday + lifespan) is encoded in the
+      // URL hash so a link fully reconstructs the view; nothing is sent to a
+      // server. MVP scope: input → grid → live stats. Share-as-PNG and
+      // milestones are deliberately deferred to follow-up issues.
+      const WEEKS_PER_YEAR = 52;
+      const MS_PER_WEEK = 7 * 24 * 60 * 60 * 1000;
+
+      const $ = (id) => document.getElementById(id);
+      const birthdayEl = $("birthday");
+      const lifespanEl = $("lifespan");
+      const gridEl = $("grid");
+      const statsEl = $("stats");
+      const metaEl = $("grid-meta");
+      const emptyEl = $("empty");
+
+      function weeksLived(birthDate) {
+        return Math.max(0, Math.floor((Date.now() - birthDate.getTime()) / MS_PER_WEEK));
+      }
+
+      function render() {
+        const bday = birthdayEl.value;
+        const lifespan = Math.min(120, Math.max(1, Number(lifespanEl.value) || 90));
+        if (!bday) {
+          gridEl.innerHTML = "";
+          statsEl.hidden = true;
+          metaEl.hidden = true;
+          emptyEl.hidden = false;
+          return;
+        }
+
+        const birthDate = new Date(bday + "T00:00:00");
+        if (isNaN(birthDate.getTime())) return;
+
+        const totalWeeks = lifespan * WEEKS_PER_YEAR;
+        const lived = Math.min(weeksLived(birthDate), totalWeeks);
+        const remaining = Math.max(0, totalWeeks - lived);
+        const pct = ((lived / totalWeeks) * 100).toFixed(1);
+
+        // Build the grid (one node per week). Fast enough for ~4,680 nodes.
+        const frag = document.createDocumentFragment();
+        for (let i = 0; i < totalWeeks; i++) {
+          const dot = document.createElement("div");
+          dot.className =
+            i < lived - 1 ? "wk lived" : i === lived - 1 ? "wk current" : "wk";
+          frag.appendChild(dot);
+        }
+        gridEl.replaceChildren(frag);
+
+        $("stat-lived").textContent = lived.toLocaleString();
+        $("stat-remaining").textContent = remaining.toLocaleString();
+        $("stat-pct").textContent = pct + "%";
+        $("grid-span").textContent = `${lifespan} years · ${totalWeeks.toLocaleString()} weeks`;
+
+        statsEl.hidden = false;
+        metaEl.hidden = false;
+        emptyEl.hidden = true;
+
+        // Persist state to the URL hash (shareable, no backend).
+        const params = new URLSearchParams({ b: bday, y: String(lifespan) });
+        history.replaceState(null, "", "#" + params.toString());
+      }
+
+      function restoreFromHash() {
+        const params = new URLSearchParams(location.hash.slice(1));
+        if (params.get("b")) birthdayEl.value = params.get("b");
+        if (params.get("y")) lifespanEl.value = params.get("y");
+      }
+
+      birthdayEl.addEventListener("input", render);
+      lifespanEl.addEventListener("input", render);
+      restoreFromHash();
+      render();
+    </script>
+  </body>
+</html>

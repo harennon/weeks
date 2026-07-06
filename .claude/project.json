@@ -1,0 +1,17 @@
+{
+  "stack": "Static HTML + CSS + vanilla JS, Cloudflare Pages (no build step)",
+  "docs": {
+    "hld": "CLAUDE.md",
+    "lldDir": "docs/lld/",
+    "mockupDir": "design-mockups/"
+  },
+  "hasFrontend": true,
+  "mockupPort": 8092,
+  "defaultBranch": "main",
+  "frontendPaths": ["src/"],
+  "proposal": {
+    "mode": "improve",
+    "references": ["neal.fun", "pudding.cool"],
+    "focus": "Polish and features for the life-in-weeks visualization — the shareable snapshot, milestones, mobile density, and emotional tone. Client-side only, no backend, deploy cheap."
+  }
+}
