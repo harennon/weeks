@@ -50,14 +50,47 @@ anyway, so no information is lost that the grid can show; (3) reconstructing a d
 trivial (`birthday + weekIndex*7 days`) for the chip's age tag. The date input in the add row
 is the user-facing capture; we convert date → week index on pin and never store the raw date.
 
-**Reuse LLD 3's extension seams; do not fork the renderers.** LLD 3 deliberately left two seams:
-- `weekStyle(i)` returns the per-dot fill decision. We extend its return to `{ fill, milestone }`
-  where `milestone` is the matching milestone object (or `null`). Both the live DOM builder and
-  the canvas grid consult this, so marking logic lives in one place.
-- `drawLifeGrid(left,right,top,bottom)` already computes `originX/originY/cell/gap`. We expose
-  those via a returned geometry object (or a shared closure) so a **post-pass** can draw the
-  milestone halo + label flags on the PNG without touching layout math. The live DOM equivalent
-  is CSS classes on the affected `.wk` nodes.
+**Reuse LLD 3's canvas seam; refactor the DOM builder through the shared decision.** LLD 3 left
+`weekStyle(i)` as the per-dot decision point, but *only* the canvas `drawLifeGrid()` consults it
+(index.html line 751); the live-grid builder in `render()` (lines 1064-1071) currently inlines its
+own class string and never calls `weekStyle()`. To make marking logic live in one place we:
+- Extend `weekStyle(i)` to return `{ fill, kind, milestone }` where `kind ∈ {"lived","current","future"}`
+  (the existing fill decision, made explicit) and `milestone` is the matching milestone object (or
+  `null`). This is a pure lookup with no side effects.
+- **Refactor `render()`'s DOM builder to call `weekStyle(i)`** instead of its inline ternary, so the
+  `.wk`/`.wk.lived`/`.wk.current` classes are derived from `kind` and the `.milestone` class is
+  appended when `milestone !== null`. This is the explicit live-grid marking path. Without this
+  refactor milestones would never appear on the live grid (the current defect the reviewer flagged).
+  The class-string mapping is: base `wk`; append ` lived`/` current` per `kind`; append ` milestone`
+  when a milestone matches (see State Model for how `.milestone` composes with `.current`).
+- `drawLifeGrid(left,right,top,bottom)` already computes `originX/originY/cell/gap`. Its per-dot loop
+  already reads `weekStyle(i)`; we extend that same loop's post-pass to draw the milestone halo when
+  `milestone !== null` (reusing the current-week ring pattern at lines 757-764). No layout math changes.
+
+**Milestone affordances live OUTSIDE the `role="img"` grid.** `#grid` is `role="img"` (index.html
+line 524); assistive tech ignores its descendants, so a focusable `role=button`/`aria-label` *inside*
+a `.wk` dot would be invisible to screen readers and unreachable by keyboard — it cannot satisfy the
+a11y edge case or the keyboard/SR test requirements. We therefore keep the grid a single opaque image
+and put **all** interactive + accessible milestone affordances in sibling elements that are real
+document content:
+- The `#ms-chips` list (and, on mobile, the timeline legend it becomes) is the **accessible, focusable,
+  keyboard-operable** representation of every milestone: each chip carries the label, `age N`, and a
+  real `<button>` to remove it. This is where screen-reader users read labels and remove milestones.
+- The grid `.wk.milestone` dots remain **purely decorative** (no `tabindex`, no `role`, no
+  per-dot `aria-label`): brighter fill + halo + pop-in only. `#grid`'s single `aria-label` is updated
+  to summarize milestone count (e.g. `"Life in weeks grid, 3 milestones marked"`) so the presence of
+  milestones is announced without exposing per-descendant semantics AT would drop anyway.
+- Click/tap on a `.wk.milestone` dot is a **mouse/touch convenience** to remove that milestone (a
+  redundant shortcut to the chip's remove button, not the primary a11y path), handled by the delegated
+  listener below.
+
+**One delegated click listener on `#grid`, never per-dot handlers.** With ~4,680 dots, attaching a
+handler per node is wasteful. We add a **single** delegated `click` listener on `#grid`: on click,
+find the `.wk` target (`e.target.closest(".wk")`), compute its week index from its position among the
+grid's children (`Array.prototype.indexOf` on `gridEl.children`, or a `data-w` attribute set during
+build — prefer `data-w` to avoid an O(n) index scan), then: if that week has a milestone →
+`removeMilestone(week)`; else → `prefillDate(week)`. The listener is attached once at boot, survives
+`replaceChildren`, and is the only interactivity mechanism for the grid.
 
 **Direction A (desktop) with C (mobile), chosen at render time by viewport width.** A single
 CSS breakpoint (`min-width: 700px` ≈ the point where the 900px-max grid has room for a gutter)
@@ -68,8 +101,21 @@ identical in both; only the *labels'* placement changes.
 
 **Marking = decoration, never a layout change.** A pinned dot keeps its grid cell; we add a
 class (`.wk.milestone`) that brightens the fill, adds a halo (`box-shadow`), and runs a one-shot
-pop-in animation. The label is exposed for a11y via `aria-label` / `title` on the dot and, on
-desktop, mirrored as a visible gutter flag. This keeps the 52-column grid math untouched.
+pop-in animation. The label is NOT placed on the dot (the dot lives inside `role="img"`; see above);
+a11y comes from the sibling `#ms-chips` list, and on desktop the label is mirrored as a visible
+(decorative, `aria-hidden`) gutter flag. This keeps the 52-column grid math untouched.
+
+**Visual precedence when a milestone lands on the current week.** The current week already renders
+distinctly: `.wk.current` in the DOM and a stroked gold ring in canvas (lines 757-764). A milestone
+on that same week must not erase the "you are here" signal. Resolution: **the two compose, they do
+not replace each other.** The dot keeps its `current` fill/ring; the `.milestone` class adds only its
+outer halo (`box-shadow` beyond the current ring) and the pop-in animation — it does NOT override the
+fill to plain gold when `current` is present. Concretely, in the DOM the class list is
+`wk current milestone` and `.wk.current.milestone` is specified so the current ring sits inside the
+milestone halo (halo radius > ring radius). In canvas, `drawLifeGrid` draws the current-week ring
+first (existing code), then the milestone post-pass strokes a second, larger halo ring outside it.
+The chip/gutter still labels it normally. This is the single documented answer to edge case 10's
+current-vs-milestone conflict.
 
 **Client-side only.** Milestone labels are personal free text; they live only in memory and the
 URL hash, exactly like the birthday. No network I/O is added. Labels are sanitized on both write
@@ -124,11 +170,20 @@ function ageLabel(week: number): string
 **Extended LLD-3 seams (specifications):**
 
 ```js
-function weekStyle(i): { fill: string, milestone: Milestone | null }
-//   unchanged fill logic; additionally returns the milestone whose .week === i, else null.
+function weekStyle(i): { fill: string, kind: "lived"|"current"|"future", milestone: Milestone | null }
+//   fill: unchanged decision. kind: same decision made explicit so the DOM builder can derive its
+//     class string ("wk" + " lived"/" current" per kind). milestone: the milestone whose .week === i,
+//     else null. Pure; no side effects. Called by BOTH the DOM builder in render() (after refactor)
+//     and the canvas drawLifeGrid() loop, so marking logic lives in exactly one place.
 
-function milestoneAt(week: number): Milestone | null   // lookup helper used by weekStyle + DOM/click.
+function milestoneAt(week: number): Milestone | null   // O(cap) lookup over milestones; used by weekStyle + delegated grid click.
 ```
+
+**Live-grid class mapping (the refactored `render()` DOM builder):** for each week `i`, read
+`{ kind, milestone } = weekStyle(i)`; build class = `"wk"` + (`kind==="lived"` → `" lived"`,
+`kind==="current"` → `" current"`, else `""`) + (`milestone` → `" milestone"`, else `""`). Set the
+dot's `data-w = i` so the delegated `#grid` listener can recover the week index in O(1). No per-dot
+event handlers, no `tabindex`/`role`/`aria-label` on dots (grid is `role="img"`).
 
 **Mutation API (all call render() at the end, which re-serializes hash + repaints):**
 
@@ -151,19 +206,33 @@ function prefillDate(week: number): void              // set add-row date input 
   positioned to align with their year-row; a thin gold rule connects flag → row. `aria-hidden`
   because the chips list is the accessible source of truth; the gutter is decorative reinforcement.
 - Mobile legend (direction C): reuse the `#ms-chips` list styled as an ordered timeline below the grid.
-- Grid dots gain, when pinned: `class="wk milestone"`, `tabindex="0"`, `role="button"`,
-  `aria-label="{label} — age N"`, and `title="{label}"`. Non-pinned dots stay non-interactive
-  except empty (future) dots which get a click handler for prefill.
+  This list is the accessible, keyboard-operable representation of milestones in BOTH layouts; only
+  its CSS presentation changes across the breakpoint.
+- Grid dots gain, when pinned, only `class="wk milestone"` (composed with `lived`/`current` per
+  `kind`) and `data-w="{i}"`. **No `tabindex`, `role`, `aria-label`, or `title` on any dot** — dots
+  are decorative descendants of `#grid` (`role="img"`), which AT does not traverse. All interaction
+  and accessibility for milestones is provided by `#ms-chips` and the single delegated `#grid`
+  listener; the grid's own `aria-label` is updated to include the milestone count.
+- Grid interactivity: one delegated `click` listener on `#grid` (attached once at boot, survives
+  `replaceChildren`). It resolves `e.target.closest(".wk")`, reads `data-w` → week `i`, then removes
+  the milestone if `milestoneAt(i)` is truthy, else calls `prefillDate(i)`. No per-dot handlers.
+- Grid `aria-label`: `render()` sets it to `"Life in weeks grid"` when there are no milestones, and
+  `"Life in weeks grid, N milestone(s) marked"` when `milestones.length > 0`.
 
 **CSS additions (reuse `:root` tokens, no new colors beyond derived brighter gold):**
 
 ```css
-.wk.milestone { background: var(--accent-gold); box-shadow: 0 0 0 2px rgba(201,168,76,.35), 0 0 8px 2px rgba(201,168,76,.45); animation: ms-pop .32s ease-out; }
+.wk.milestone { background: var(--accent-gold); box-shadow: 0 0 0 2px rgba(201,168,76,.35), 0 0 8px 2px rgba(201,168,76,.45); animation: ms-pop .32s ease-out; cursor: pointer; }
+/* Compose with current: keep the current fill/ring, add the milestone halo OUTSIDE it (no fill
+   override). Halo box-shadow radius > current ring so both remain legible ("you are here" + pinned). */
+.wk.current.milestone { background: /* current fill from base .wk.current */; box-shadow: 0 0 0 2px var(--accent-gold), 0 0 0 5px rgba(201,168,76,.35), 0 0 10px 3px rgba(201,168,76,.45); }
 @keyframes ms-pop { 0%{transform:scale(.4);opacity:.3} 60%{transform:scale(1.25)} 100%{transform:scale(1);opacity:1} }
 /* direction A gutter flags: absolute-positioned within .grid-wrap; thin gold connector rule. */
 /* direction C timeline: #ms-chips as ordered list, shown < 700px, gutter hidden. */
 @media (prefers-reduced-motion: reduce){ .wk.milestone{ animation: none } }
 ```
+(Exact fill/shadow values are illustrative; the invariant is: `.milestone` alone → gold fill + halo;
+`.current.milestone` → current fill + current ring + a larger outer halo, never a plain-gold override.)
 
 **PNG (extend LLD-3 canvas):** milestone dots draw with the brighter fill + a stroked halo in a
 post-pass inside `drawLifeGrid` (reuse the current-week ring pattern at lines ~757-764). Labels
@@ -182,7 +251,8 @@ render as small gutter flags on the right margin in the portrait layouts (`both`
   on lifespan (`y`). `restoreFromHash()` must parse `b`/`y` first, then decode `m` using the
   resulting `totalWeeks`; `render()` re-clamps anyway. On boot: `restoreFromHash()` → `render()`.
 - **Derived, never stored:** the milestone's calendar date (recomputed via `dateForWeek` for chip
-  age tags and prefill) and the `age N` label.
+  age tags and prefill), the `age N` label, each dot's class string (from `weekStyle(i)`), and the
+  `#grid` `aria-label` milestone-count suffix — all recomputed each `render()`.
 - **UI/session (not persisted):** add-row input contents; which presentation (A vs C) is active
   is purely a CSS media-query outcome, not JS state.
 - **Privacy:** labels are personal text and are treated exactly like the birthday — memory + hash
@@ -210,9 +280,13 @@ render as small gutter flags on the right margin in the portrait layouts (`both`
 9. **Malformed `m` param** (missing `|`, non-numeric week, stray separators, empty segments) —
    `decodeMilestones` drops bad entries and never throws; a partially valid hash still restores
    the good milestones.
-10. **Clicking a pinned dot** removes it; **clicking an empty (future) dot** prefills the add-row
-    date. Lived/current non-milestone dots: click prefills date too (any dot is a valid target as
-    long as its week is on-grid) — but the current/lived state does not block pinning.
+10. **Clicking a pinned dot** removes it (via the delegated `#grid` listener); **clicking any
+    non-pinned dot** (future, lived, or current) prefills the add-row date with that week's date.
+    Any on-grid week is a valid pin target. **Milestone on the current week:** current state does not
+    block pinning, and the two visual signals *compose* — the dot keeps its `current` fill + gold ring
+    and gains an additional outer milestone halo (see Approach "Visual precedence" and the
+    `.wk.current.milestone` CSS). The current ring is never replaced by a plain-gold milestone fill;
+    in canvas the ring draws first, then a larger halo ring outside it. The chip labels it normally.
 11. **No birthday yet** — add row + chips are disabled/hidden (`state.hasData` false); pinning
     requires a birthday to map dates → weeks.
 12. **URL length** — 12 milestones × (~40-char label + ~5-char week + 2 delimiters) ≈ well under
@@ -224,15 +298,30 @@ render as small gutter flags on the right margin in the portrait layouts (`both`
     the chips list disambiguates. Timeline legend (mobile) always lists all.
 15. **PNG with milestones** — dots + halos always draw; if labels would overflow the portrait
     gutter, truncate with an ellipsis; `summary` layout shows a "+N milestones" line only.
-16. **Keyboard access** — pinned dots are focusable (`tabindex=0`, `role=button`); Enter/Space
-    removes (mirrors click); the tooltip/label is reachable via focus for screen readers, not just
-    hover (satisfies the mobile-reveal + keyboard requirement).
+16. **Keyboard / screen-reader access** — accessibility does NOT rely on the grid dots (they are
+    decorative descendants of `#grid`, which is `role="img"`; AT ignores them and they carry no
+    `tabindex`/`role`/`aria-label`). Instead, the `#ms-chips` list is the accessible source of truth:
+    each chip shows the label + `age N` and holds a real `<button aria-label="Remove {label}">` that
+    is natively focusable and Enter/Space-activatable. Keyboard users Tab to a chip's remove button
+    and press Enter/Space to remove; screen readers read each chip's label. The grid's own
+    `aria-label` announces the milestone count. This is the same accessible path on desktop (chips)
+    and mobile (same list styled as a timeline), so the mobile-reveal + keyboard + SR requirements are
+    met without any interactive descendant inside `role="img"`.
 
 ## Dependencies
 
-- **`src/index.html` post-LLD-3** — this LLD extends the existing `weekStyle(i)` (lines ~648-652),
-  `drawLifeGrid` (lines ~724-766), `render()` hash write (line ~1083), `restoreFromHash()`
-  (lines ~1090-1094), and the boot sequence (`restoreFromHash(); render();`). No new source files.
+- **`src/index.html` post-LLD-3** — this LLD extends/refactors:
+  - `weekStyle(i)` (lines ~648-652): extend return to `{ fill, kind, milestone }`.
+  - `render()`'s live-grid DOM builder (lines ~1064-1071): **refactor** the inline class ternary to
+    call `weekStyle(i)` and derive classes from `kind` + `milestone`, set `data-w`, and update the
+    `#grid` `aria-label` with the milestone count. (This is the required live-grid marking path.)
+  - `drawLifeGrid` (lines ~724-766): add the milestone halo post-pass in the existing per-dot loop
+    (which already calls `weekStyle(i)`), reusing the current-week ring pattern (lines 757-764).
+  - `render()` hash write (line ~1083): append `m=` when non-empty.
+  - `restoreFromHash()` (lines ~1090-1094): parse `b`/`y` first, then decode `m`.
+  - Boot sequence (`restoreFromHash(); render();`) and a one-time delegated `click` listener on `#grid`.
+  - `#grid` element (line 524) keeps `role="img"`; milestone dots are decorative descendants and all
+    interactive/accessible affordances live in sibling DOM (`#ms-chips`). No new source files.
 - **LLD 3 (`docs/lld/03-share-as-png-snapshot.md`)** — must be implemented first; the milestone
   PNG rendering layers onto its `drawLifeGrid` post-pass and layout renderers. Coordinate so the
   snapshot `toBlob`/download/native-share flow is not regressed (the halo/labels are additive draws
@@ -253,9 +342,14 @@ render as small gutter flags on the right margin in the portrait layouts (`both`
   the hash updates. Remove via chip × → same.
 - Desktop (≥700px): gutter flags align to the correct year-rows with connector rules; two
   milestones in one row don't overlap illegibly (stack/collapse rule holds).
-- Mobile / narrow (<700px): gutter hidden; ordered timeline legend lists milestones; tapping a
-  pinned dot reveals its label accessibly and removes on tap-again/confirm per interaction spec.
-- Keyboard: Tab to a pinned dot, focus shows the label, Enter/Space removes it.
+- Mobile / narrow (<700px): gutter hidden; ordered timeline legend (`#ms-chips`) lists milestones
+  with labels + `age N`; tapping a pinned dot removes it; the label is read from the legend, not the
+  dot.
+- Keyboard: Tab reaches each chip's remove `<button>` (dots are NOT in the tab order and carry no
+  role/label); Enter/Space on the button removes the milestone.
+- Screen reader: with a screen reader active, verify milestone labels are announced from `#ms-chips`
+  (not from grid dots — those are inside `role="img"` and must not be individually announced), and
+  the `#grid` `aria-label` includes the milestone count.
 - Reduced-motion OS setting: no pop-in animation; halo still present.
 - Open the snapshot sheet → milestone dots (halo) and labels appear in `both`/`full`; `summary`
   shows "+N milestones"; Download PNG contains them; native share (where supported) attaches the
@@ -275,6 +369,16 @@ render as small gutter flags on the right margin in the portrait layouts (`both`
 - Hostile hash (`m` with script-y label, delimiters, huge length) restores safely: labels are
   text-only in `title`/`aria-label`/canvas (no HTML injection), over-cap/over-length trimmed.
 
+**Visual / a11y composition (must verify):**
+- Pin a milestone on the **current** week: the dot still shows the current fill + gold ring AND gains
+  the outer milestone halo (neither signal is lost); same in the PNG (ring then outer halo). Removing
+  it restores the plain current dot.
+- Grid dots expose no per-dot `role`/`tabindex`/`aria-label`; the accessibility tree shows `#grid` as
+  a single image whose label includes the milestone count, with milestones reachable only via
+  `#ms-chips`.
+
 **Regression:**
 - MVP + LLD-3 flows unchanged when no milestones exist: `m` is omitted from the hash; grid, stats,
-  and snapshot render exactly as before.
+  and snapshot render exactly as before. `render()`'s `weekStyle`-driven class output must produce
+  byte-identical `.wk`/`.wk.lived`/`.wk.current` classes to the pre-refactor inline ternary for every
+  week when `milestones` is empty (the DOM-builder refactor must not change existing dot styling).
