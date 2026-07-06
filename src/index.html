@@ -471,6 +471,217 @@
         opacity: 1;
         transform: translateX(-50%) translateY(0);
       }
+
+      /* ── Milestone dot styles ──────────────────────────────────────────── */
+      .wk.milestone {
+        background: var(--accent-gold);
+        box-shadow: 0 0 0 2px rgba(201, 168, 76, 0.35), 0 0 7px 2px rgba(201, 168, 76, 0.4);
+        animation: ms-pop 0.32s ease-out;
+        cursor: pointer;
+      }
+
+      /* Current week + milestone: keep current fill/ring, add outer halo */
+      .wk.current.milestone {
+        background: var(--dot-current);
+        box-shadow: 0 0 0 2px var(--accent-gold),
+                    0 0 0 5px rgba(201, 168, 76, 0.35),
+                    0 0 10px 3px rgba(201, 168, 76, 0.4);
+      }
+
+      /* Lived week that is also a milestone */
+      .wk.lived.milestone {
+        background: var(--dot-lived);
+        box-shadow: 0 0 0 2px rgba(201, 168, 76, 0.5), 0 0 7px 2px rgba(201, 168, 76, 0.45);
+      }
+
+      @keyframes ms-pop {
+        0%   { transform: scale(0.4); opacity: 0.3; }
+        60%  { transform: scale(1.25); }
+        100% { transform: scale(1); opacity: 1; }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .wk.milestone { animation: none; }
+      }
+
+      /* ── Milestone add row ─────────────────────────────────────────────── */
+      .ms-add {
+        max-width: 900px;
+        margin: 1.5rem auto 0.75rem;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.6rem;
+        align-items: flex-end;
+      }
+
+      .ms-add-label-wrap {
+        flex: 1 1 160px;
+        display: flex;
+        flex-direction: column;
+        gap: 0.3rem;
+      }
+
+      .ms-add-date-wrap {
+        flex: 0 1 160px;
+        display: flex;
+        flex-direction: column;
+        gap: 0.3rem;
+      }
+
+      .ms-add-label-wrap label,
+      .ms-add-date-wrap label {
+        font-size: 0.78rem;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--text-muted);
+      }
+
+      .ms-add input[type="text"],
+      .ms-add input[type="date"] {
+        background: rgba(255, 255, 255, 0.06);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        border-radius: 8px;
+        color: var(--text-primary);
+        font-family: var(--font-display);
+        font-size: 0.925rem;
+        padding: 0.5rem 0.7rem;
+        color-scheme: dark;
+        width: 100%;
+      }
+
+      .ms-add input:focus-visible {
+        outline: 2px solid var(--accent-gold);
+        outline-offset: 1px;
+      }
+
+      .btn-pin {
+        background: transparent;
+        border: 1px solid var(--accent-gold);
+        color: var(--accent-gold);
+        font-size: 0.875rem;
+        padding: 0.5rem 1rem;
+        white-space: nowrap;
+        align-self: flex-end;
+      }
+
+      .btn-pin:hover:not(:disabled) {
+        box-shadow: 0 0 0 3px rgba(201, 168, 76, 0.25);
+      }
+
+      .btn-pin:disabled {
+        opacity: 0.35;
+        cursor: not-allowed;
+      }
+
+      .btn-pin:focus-visible {
+        outline: 2px solid var(--accent-gold);
+        outline-offset: 2px;
+      }
+
+      /* ── Milestone chips ───────────────────────────────────────────────── */
+      .ms-chips {
+        max-width: 900px;
+        margin: 0 auto 0.5rem;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        list-style: none;
+        padding: 0;
+        min-height: 0;
+      }
+
+      .ms-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        background: rgba(201, 168, 76, 0.12);
+        border: 1px solid rgba(201, 168, 76, 0.3);
+        border-radius: 999px;
+        padding: 0.3rem 0.45rem 0.3rem 0.7rem;
+        font-size: 0.82rem;
+        color: var(--text-primary);
+      }
+
+      .ms-chip-label {
+        font-weight: 500;
+      }
+
+      .ms-chip-age {
+        color: var(--text-muted);
+        font-size: 0.75rem;
+      }
+
+      .ms-chip-remove {
+        background: transparent;
+        border: none;
+        color: var(--text-muted);
+        font-size: 1rem;
+        line-height: 1;
+        cursor: pointer;
+        padding: 0.1rem 0.2rem;
+        border-radius: 50%;
+        transition: color 0.12s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .ms-chip-remove:hover {
+        color: var(--text-primary);
+      }
+
+      .ms-chip-remove:focus-visible {
+        outline: 2px solid var(--accent-gold);
+        outline-offset: 2px;
+      }
+
+      /* ── Desktop gutter (direction A, ≥ 700px) ────────────────────────── */
+      .grid-wrap {
+        position: relative;
+      }
+
+      #ms-gutter {
+        position: absolute;
+        left: 100%;
+        top: 0;
+        bottom: 0;
+        width: 160px;
+        pointer-events: none;
+      }
+
+      .ms-flag {
+        position: absolute;
+        left: 10px;
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        transform: translateY(-50%);
+        pointer-events: none;
+      }
+
+      .ms-flag-rule {
+        width: 16px;
+        height: 1px;
+        background: var(--accent-gold);
+        opacity: 0.6;
+        flex-shrink: 0;
+      }
+
+      .ms-flag-text {
+        font-size: 0.75rem;
+        color: var(--accent-gold);
+        opacity: 0.85;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 120px;
+      }
+
+      @media (max-width: 699px) {
+        #ms-gutter {
+          display: none;
+        }
+      }
     </style>
   </head>
   <body>
@@ -525,7 +736,32 @@
       <p class="empty-state" id="empty">
         Enter your birthday above to see your weeks.
       </p>
+      <!-- Desktop gutter flags (direction A, aria-hidden — chips list is the accessible source) -->
+      <div id="ms-gutter" aria-hidden="true"></div>
     </div>
+
+    <!-- Milestone add row -->
+    <form id="ms-add" class="ms-add" aria-label="Pin a milestone">
+      <div class="ms-add-label-wrap">
+        <label for="ms-label">Milestone</label>
+        <input
+          type="text"
+          id="ms-label"
+          maxlength="40"
+          placeholder="e.g. started school"
+          autocomplete="off"
+          disabled
+        />
+      </div>
+      <div class="ms-add-date-wrap">
+        <label for="ms-date">Date</label>
+        <input type="date" id="ms-date" disabled />
+      </div>
+      <button type="submit" class="btn btn-pin" disabled>+ Pin it</button>
+    </form>
+
+    <!-- Milestone chips (accessible list; styled as timeline on mobile, chips on desktop) -->
+    <ul id="ms-chips" class="ms-chips" aria-label="Pinned milestones"></ul>
 
     <footer>
       <p class="privacy">
@@ -582,11 +818,17 @@
     <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
     <script>
-      // weeks — client-side only. State (birthday + lifespan) is encoded in the
-      // URL hash so a link fully reconstructs the view; nothing is sent to a
-      // server.
+      // weeks — client-side only. State (birthday + lifespan + milestones) is
+      // encoded in the URL hash so a link fully reconstructs the view; nothing
+      // is sent to a server.
       const WEEKS_PER_YEAR = 52;
       const MS_PER_WEEK = 7 * 24 * 60 * 60 * 1000;
+
+      // ── Milestone constants ───────────────────────────────────────────────
+      const MAX_MILESTONES = 12;
+      const MAX_LABEL_LEN  = 40;
+      const M_SEP = "~";   // separator between milestones in the m= param
+      const M_KV  = "|";   // separator between label and weekIndex within one milestone
 
       const $ = (id) => document.getElementById(id);
       const birthdayEl = $("birthday");
@@ -603,6 +845,17 @@
       const toastEl = $("toast");
       const snapCanvas = $("snap");
       const previewEl = $("preview");
+      const msAddForm = $("ms-add");
+      const msLabelInput = $("ms-label");
+      const msDateInput = $("ms-date");
+      const msPinBtn = msAddForm.querySelector("button[type=submit]");
+      const msChipsEl = $("ms-chips");
+      const msGutterEl = $("ms-gutter");
+
+      // ── In-memory milestone source of truth ──────────────────────────────
+      // Each entry: { label: string, week: number }
+      // Always kept sorted by week ascending after every mutation.
+      let milestones = [];
 
       // ── Shared render state ──────────────────────────────────────────────
       // Populated by captureState() at the end of each successful render().
@@ -641,14 +894,105 @@
       // ── Canvas rendering context (reused across calls) ────────────────────
       const ctx = snapCanvas.getContext("2d");
 
+      // ── Pure helper: sanitize a milestone label ───────────────────────────
+      // Strips M_SEP, M_KV, control chars; collapses whitespace; length-caps.
+      function sanitizeLabel(raw) {
+        if (typeof raw !== "string") return "";
+        return raw
+          .replace(/[\x00-\x1f\x7f]/g, "")  // strip control chars
+          .replace(/[~|]/g, "")              // strip our delimiters
+          .replace(/\s+/g, " ")             // collapse whitespace
+          .trim()
+          .slice(0, MAX_LABEL_LEN);
+      }
+
+      // ── Pure helper: encode milestones array → "label|week~..." string ───
+      function encodeMilestones(list) {
+        if (!list.length) return "";
+        return list.map((m) => `${m.label}${M_KV}${m.week}`).join(M_SEP);
+      }
+
+      // ── Pure helper: decode "label|week~..." string → Milestone[] ────────
+      // Never throws. Drops bad/duplicate/out-of-range entries. Caps to MAX_MILESTONES.
+      function decodeMilestones(raw, totalWeeks) {
+        if (!raw) return [];
+        const seen = new Set();
+        const result = [];
+        for (const part of raw.split(M_SEP)) {
+          const kvIdx = part.indexOf(M_KV);
+          if (kvIdx === -1) continue;
+          const rawLabel = part.slice(0, kvIdx);
+          const rawWeek  = part.slice(kvIdx + 1);
+          const label = sanitizeLabel(rawLabel);
+          if (!label) continue;
+          const week = parseInt(rawWeek, 10);
+          if (isNaN(week) || week < 0 || week >= totalWeeks) continue;
+          if (seen.has(week)) continue;
+          seen.add(week);
+          result.push({ label, week });
+          if (result.length >= MAX_MILESTONES) break;
+        }
+        result.sort((a, b) => a.week - b.week);
+        return result;
+      }
+
+      // ── Pure helper: date string → week index (0-based from birthday) ────
+      // Returns null if before birthday or date is invalid.
+      function weekForDate(birthDate, dateStr) {
+        if (!dateStr) return null;
+        const d = new Date(dateStr + "T00:00:00");
+        if (isNaN(d.getTime())) return null;
+        const diff = d.getTime() - birthDate.getTime();
+        if (diff < 0) return null;
+        return Math.floor(diff / MS_PER_WEEK);
+      }
+
+      // ── Pure helper: week index → Date (for chip age tag / prefill) ───────
+      function dateForWeek(birthDate, week) {
+        return new Date(birthDate.getTime() + week * MS_PER_WEEK);
+      }
+
+      // ── Pure helper: week index → "age N" label ──────────────────────────
+      function ageLabel(week) {
+        return "age " + Math.floor(week / WEEKS_PER_YEAR);
+      }
+
+      // ── Pure helper: week index → milestone or null ───────────────────────
+      function milestoneAt(week) {
+        for (let i = 0; i < milestones.length; i++) {
+          if (milestones[i].week === week) return milestones[i];
+        }
+        return null;
+      }
+
       // ────────────────────────────────────────────────────────────────────
-      // Per-dot color decision — extension point for issue #2 (milestones).
-      // Returns { fill } for week index i (0-based).
+      // Per-dot style decision — single source of truth for both the live DOM
+      // grid and the canvas snapshot renderer.
+      //
+      // `lived` MUST be passed in by the caller (NOT read from state.lived).
+      // The DOM builder calls weekStyle(i, localLived) where localLived is
+      // computed before the grid loop — before captureState() has run.
+      // The canvas renderer calls weekStyle(i, state.lived) — safe because
+      // captureState() has already run before any snapshot renders.
+      //
+      // Returns { fill, kind, milestone }
+      //   kind: "lived" | "current" | "future"
+      //   milestone: Milestone | null
       // ────────────────────────────────────────────────────────────────────
-      function weekStyle(i) {
-        if (i < state.lived - 1) return { fill: COLORS.lived };
-        if (i === state.lived - 1) return { fill: COLORS.current };
-        return { fill: COLORS.future };
+      function weekStyle(i, lived) {
+        let kind, fill;
+        if (i < lived - 1) {
+          kind = "lived";
+          fill = COLORS.lived;
+        } else if (i === lived - 1) {
+          kind = "current";
+          fill = COLORS.current;
+        } else {
+          kind = "future";
+          fill = COLORS.future;
+        }
+        const milestone = milestoneAt(i);
+        return { fill, kind, milestone };
       }
 
       // ── Shared frame helpers ─────────────────────────────────────────────
@@ -721,7 +1065,10 @@
 
       // Draws the full 52×N week grid inside the given bounding rectangle.
       // The grid is centered vertically within the band.
-      function drawLifeGrid(left, right, top, bottom) {
+      // Also draws milestone dot halos and (for portrait layouts) gutter label flags.
+      // showLabels: if true, draws label flags in the right margin.
+      // summaryOnly: if true, draws a "+N milestones" count line instead of per-label flags.
+      function drawLifeGrid(left, right, top, bottom, showLabels, summaryOnly) {
         const COLS = 52;
         const rows = Math.ceil(state.totalWeeks / COLS);
         const availW = right - left;
@@ -741,6 +1088,10 @@
         const originX = left + (availW - gridW) / 2;
         const originY = top + (availH - gridH) / 2;
 
+        // Pass state.lived — correct here since captureState() has already run
+        // before any snapshot renders.
+        const lived = state.lived;
+
         for (let i = 0; i < state.totalWeeks; i++) {
           const col = i % COLS;
           const row = Math.floor(i / COLS);
@@ -748,20 +1099,96 @@
           const y = originY + row * (cell + gap);
           const r = cell / 2;
 
-          const { fill } = weekStyle(i);
-          ctx.fillStyle = fill;
+          const { fill, kind, milestone } = weekStyle(i, lived);
+
+          // For milestone dots: use brighter gold fill
+          if (milestone) {
+            ctx.fillStyle = kind === "current" ? COLORS.current : COLORS.gold;
+          } else {
+            ctx.fillStyle = fill;
+          }
           ctx.beginPath();
           ctx.arc(x + r, y + r, r, 0, Math.PI * 2);
           ctx.fill();
 
           // Current week ring (mirrors CSS box-shadow: 0 0 0 2px --accent-gold)
-          if (i === state.lived - 1) {
+          if (kind === "current") {
             ctx.strokeStyle = COLORS.gold;
             ctx.lineWidth = Math.max(1, r * 0.2);
             ctx.beginPath();
             ctx.arc(x + r, y + r, r + Math.max(1, r * 0.2), 0, Math.PI * 2);
             ctx.stroke();
           }
+
+          // Milestone halo ring (drawn outside the current ring when both present)
+          if (milestone) {
+            const haloOffset = kind === "current"
+              ? r + Math.max(1, r * 0.2) + Math.max(1, r * 0.25)
+              : r + Math.max(1, r * 0.2);
+            ctx.strokeStyle = "rgba(201,168,76,0.55)";
+            ctx.lineWidth = Math.max(1, r * 0.18);
+            ctx.beginPath();
+            ctx.arc(x + r, y + r, haloOffset, 0, Math.PI * 2);
+            ctx.stroke();
+          }
+        }
+
+        // Draw milestone label flags in the right margin for portrait layouts
+        if (showLabels && milestones.length > 0) {
+          const FLAG_FONT_SIZE = Math.max(10, Math.round(cell * 1.1));
+          ctx.font = `400 ${FLAG_FONT_SIZE}px "DM Sans", system-ui, sans-serif`;
+          ctx.textBaseline = "middle";
+          ctx.textAlign = "left";
+
+          const flagX = originX + gridW + cell;
+          const maxFlagW = right - flagX - cell;
+
+          for (const ms of milestones) {
+            const col = ms.week % COLS;
+            const row = Math.floor(ms.week / COLS);
+            const dotCenterY = originY + row * (cell + gap) + cell / 2;
+
+            // Thin gold rule
+            ctx.strokeStyle = "rgba(201,168,76,0.55)";
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(originX + gridW + 2, dotCenterY);
+            ctx.lineTo(flagX - 2, dotCenterY);
+            ctx.stroke();
+
+            // Label text (truncate with ellipsis if too wide)
+            ctx.fillStyle = "rgba(201,168,76,0.85)";
+            const text = ms.label;
+            let displayText = text;
+            if (maxFlagW > 0 && ctx.measureText(text).width > maxFlagW) {
+              // Truncate to fit
+              let lo = 0, hi = text.length;
+              while (lo < hi) {
+                const mid = Math.ceil((lo + hi) / 2);
+                if (ctx.measureText(text.slice(0, mid) + "…").width <= maxFlagW) {
+                  lo = mid;
+                } else {
+                  hi = mid - 1;
+                }
+              }
+              displayText = lo > 0 ? text.slice(0, lo) + "…" : "…";
+            }
+            ctx.fillText(displayText, flagX, dotCenterY);
+          }
+        }
+
+        // For summary layout: draw a single milestone count line below the grid
+        if (summaryOnly && milestones.length > 0) {
+          const COUNT_FONT = Math.max(10, Math.round(cell * 1.2));
+          ctx.font = `400 ${COUNT_FONT}px "DM Sans", system-ui, sans-serif`;
+          ctx.textAlign = "center";
+          ctx.textBaseline = "top";
+          ctx.fillStyle = "rgba(201,168,76,0.7)";
+          ctx.fillText(
+            `+ ${milestones.length} milestone${milestones.length === 1 ? "" : "s"}`,
+            left + availW / 2,
+            originY + gridH + gap * 2
+          );
         }
       }
 
@@ -796,7 +1223,7 @@
         const FOOTER_BAND = Math.round(H * 0.1);
         const GRID_BOTTOM = H - FOOTER_BAND;
 
-        drawLifeGrid(Math.round(W * 0.05), Math.round(W * 0.95), GRID_TOP, GRID_BOTTOM);
+        drawLifeGrid(Math.round(W * 0.05), Math.round(W * 0.95), GRID_TOP, GRID_BOTTOM, true, false);
         drawFooter(W, H);
       }
 
@@ -813,7 +1240,7 @@
         const FOOTER_BAND = Math.round(H * 0.1);
         const GRID_BOTTOM = H - FOOTER_BAND;
 
-        drawLifeGrid(Math.round(W * 0.04), Math.round(W * 0.96), GRID_TOP, GRID_BOTTOM);
+        drawLifeGrid(Math.round(W * 0.04), Math.round(W * 0.96), GRID_TOP, GRID_BOTTOM, true, false);
         drawFooter(W, H);
       }
 
@@ -893,6 +1320,20 @@
         const BAND_BOTTOM = Math.round(H * 0.82);
         drawDecadeBand(Math.round(W * 0.06), Math.round(W * 0.94), BAND_TOP, BAND_BOTTOM);
 
+        // Milestone count line for summary (no per-label flags — space is tight)
+        if (milestones.length > 0) {
+          const ML_FONT = Math.round(W * 0.028);
+          ctx.font = `400 ${ML_FONT}px "DM Sans", system-ui, sans-serif`;
+          ctx.textAlign = "center";
+          ctx.textBaseline = "alphabetic";
+          ctx.fillStyle = "rgba(201,168,76,0.7)";
+          ctx.fillText(
+            `+ ${milestones.length} milestone${milestones.length === 1 ? "" : "s"}`,
+            W / 2,
+            Math.round(H * 0.9)
+          );
+        }
+
         drawFooter(W, H);
       }
 
@@ -916,7 +1357,7 @@
         overlayEl.classList.add("open");
         // Update preview ratio
         previewEl.setAttribute("data-ratio", FORMATS[format].ratio);
-        // Paint — if fonts aren't ready yet, paint immediately then repaint when ready
+        // Paint — if fonts aren’t ready yet, paint immediately then repaint when ready
         renderSnapshot();
         document.fonts.ready.then(() => {
           if (overlayEl.classList.contains("open")) renderSnapshot();
@@ -1032,6 +1473,167 @@
         }, "image/png");
       }
 
+      // ── Milestone: gutter alignment (direction A, desktop ≥ 700px) ───────
+      // Reads each pinned dot’s measured Y relative to .grid-wrap and positions
+      // the corresponding gutter flag. O(milestones ≤ MAX_MILESTONES).
+      // No-ops when the gutter is display:none (< 700px).
+      let alignGutterRaf = null;
+
+      function alignGutter() {
+        if (!msGutterEl || getComputedStyle(msGutterEl).display === "none") return;
+        if (!state.hasData) return;
+
+        const wrapEl = msGutterEl.parentElement; // .grid-wrap
+        const wrapRect = wrapEl.getBoundingClientRect();
+
+        // Gather all existing flags; rebuild only as needed
+        // Build a map of week -> existing flag element
+        const existingFlags = {};
+        for (const flagEl of msGutterEl.children) {
+          const w = parseInt(flagEl.dataset.w, 10);
+          if (!isNaN(w)) existingFlags[w] = flagEl;
+        }
+
+        // Remove flags for weeks no longer in milestones
+        const currentWeeks = new Set(milestones.map((m) => m.week));
+        for (const w of Object.keys(existingFlags)) {
+          if (!currentWeeks.has(Number(w))) {
+            existingFlags[w].remove();
+            delete existingFlags[w];
+          }
+        }
+
+        // Group milestones by year-row to detect collisions (edge case 14)
+        const rowGroups = {}; // rowIndex -> [milestone, ...]
+        for (const ms of milestones) {
+          const row = Math.floor(ms.week / WEEKS_PER_YEAR);
+          if (!rowGroups[row]) rowGroups[row] = [];
+          rowGroups[row].push(ms);
+        }
+
+        // Track which dot Y values we’ve already placed a flag at (for stacking)
+        const placedY = {}; // dotY -> count
+
+        for (const ms of milestones) {
+          const dotEl = gridEl.querySelector(`[data-w="${ms.week}"]`);
+          if (!dotEl) continue;
+
+          const dotRect = dotEl.getBoundingClientRect();
+          const dotCenterY = dotRect.top + dotRect.height / 2 - wrapRect.top;
+          const row = Math.floor(ms.week / WEEKS_PER_YEAR);
+          const rowMilestones = rowGroups[row];
+
+          // If multiple milestones in same row, stack flags vertically
+          let flagTop = dotCenterY;
+          if (rowMilestones.length > 1) {
+            const idx = rowMilestones.indexOf(ms);
+            flagTop = dotCenterY + idx * 18 - ((rowMilestones.length - 1) * 18) / 2;
+          }
+
+          // Create or reuse the flag element
+          let flagEl = existingFlags[ms.week];
+          if (!flagEl) {
+            flagEl = document.createElement("div");
+            flagEl.className = "ms-flag";
+            flagEl.dataset.w = ms.week;
+            flagEl.innerHTML =
+              `<div class="ms-flag-rule"></div>` +
+              `<div class="ms-flag-text"></div>`;
+            msGutterEl.appendChild(flagEl);
+          }
+
+          flagEl.querySelector(".ms-flag-text").textContent = ms.label;
+          flagEl.style.top = Math.round(flagTop) + "px";
+        }
+      }
+
+      // Debounced resize handler for gutter re-alignment
+      let resizeTimer = null;
+      window.addEventListener("resize", () => {
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(alignGutter, 80);
+      });
+
+      // ── Milestone chips re-render ─────────────────────────────────────────
+      // Re-builds the #ms-chips list from the in-memory milestones array.
+      function renderChips(birthDate) {
+        const frag = document.createDocumentFragment();
+        for (const ms of milestones) {
+          const li = document.createElement("li");
+          li.className = "ms-chip";
+
+          const labelSpan = document.createElement("span");
+          labelSpan.className = "ms-chip-label";
+          labelSpan.textContent = ms.label;
+
+          const ageSpan = document.createElement("span");
+          ageSpan.className = "ms-chip-age";
+          ageSpan.textContent = ageLabel(ms.week);
+
+          const removeBtn = document.createElement("button");
+          removeBtn.className = "ms-chip-remove";
+          removeBtn.setAttribute("aria-label", "Remove " + ms.label);
+          removeBtn.setAttribute("type", "button");
+          removeBtn.textContent = "×";
+          removeBtn.addEventListener("click", () => removeMilestone(ms.week));
+
+          li.appendChild(labelSpan);
+          li.appendChild(ageSpan);
+          li.appendChild(removeBtn);
+          frag.appendChild(li);
+        }
+        msChipsEl.replaceChildren(frag);
+      }
+
+      // ── Milestone mutation API ────────────────────────────────────────────
+
+      function addMilestone(labelRaw, dateStr) {
+        const label = sanitizeLabel(labelRaw);
+        if (!label) {
+          showToast("Add a short label");
+          return;
+        }
+        if (milestones.length >= MAX_MILESTONES) {
+          showToast("Up to 12 milestones");
+          return;
+        }
+        const birthDate = new Date(birthdayEl.value + "T00:00:00");
+        const week = weekForDate(birthDate, dateStr);
+        if (week === null) {
+          showToast("That’s before your birthday");
+          return;
+        }
+        if (week >= state.totalWeeks) {
+          showToast("That’s past the grid — try a longer lifespan");
+          return;
+        }
+        if (milestoneAt(week) !== null) {
+          showToast("You already pinned that week");
+          return;
+        }
+        milestones.push({ label, week });
+        milestones.sort((a, b) => a.week - b.week);
+        render();
+      }
+
+      function removeMilestone(week) {
+        milestones = milestones.filter((m) => m.week !== week);
+        render();
+      }
+
+      // Set the add-row date input to the date of the given week index.
+      function prefillDate(week) {
+        if (!state.hasData) return;
+        const birthDate = new Date(birthdayEl.value + "T00:00:00");
+        const d = dateForWeek(birthDate, week);
+        // Format as YYYY-MM-DD for the date input
+        const yyyy = d.getFullYear();
+        const mm = String(d.getMonth() + 1).padStart(2, "0");
+        const dd = String(d.getDate()).padStart(2, "0");
+        msDateInput.value = `${yyyy}-${mm}-${dd}`;
+        msLabelInput.focus();
+      }
+
       // ── Main render ───────────────────────────────────────────────────────
 
       function weeksLived(birthDate) {
@@ -1042,13 +1644,20 @@
         const bday = birthdayEl.value;
         const lifespan = Math.min(120, Math.max(1, Number(lifespanEl.value) || 90));
         if (!bday) {
-          gridEl.innerHTML = "";
+          gridEl.replaceChildren();
           statsEl.hidden = true;
           metaEl.hidden = true;
           emptyEl.hidden = false;
-          // No valid data — keep share button disabled
+          // No valid data — keep share button and add row disabled
           state.hasData = false;
           openShareBtn.disabled = true;
+          msLabelInput.disabled = true;
+          msDateInput.disabled = true;
+          msPinBtn.disabled = true;
+          msChipsEl.replaceChildren();
+          msGutterEl.replaceChildren();
+          // Update grid aria-label
+          gridEl.setAttribute("aria-label", "Life in weeks grid");
           return;
         }
 
@@ -1056,19 +1665,39 @@
         if (isNaN(birthDate.getTime())) return;
 
         const totalWeeks = lifespan * WEEKS_PER_YEAR;
+        // Compute lived BEFORE the grid loop — passed into weekStyle() to avoid
+        // reading stale state.lived (which captureState() writes AFTER the loop).
         const lived = Math.min(weeksLived(birthDate), totalWeeks);
         const remaining = Math.max(0, totalWeeks - lived);
         const pct = ((lived / totalWeeks) * 100).toFixed(1);
+
+        // Drop milestones that fall outside the new totalWeeks (e.g. lifespan shortened)
+        milestones = milestones.filter((m) => m.week < totalWeeks);
 
         // Build the grid (one node per week). Fast enough for ~4,680 nodes.
         const frag = document.createDocumentFragment();
         for (let i = 0; i < totalWeeks; i++) {
           const dot = document.createElement("div");
-          dot.className =
-            i < lived - 1 ? "wk lived" : i === lived - 1 ? "wk current" : "wk";
+          // Pass local `lived` (computed above) — NOT state.lived (stale until captureState runs)
+          const { kind, milestone } = weekStyle(i, lived);
+          let cls = "wk";
+          if (kind === "lived")   cls += " lived";
+          if (kind === "current") cls += " current";
+          if (milestone)          cls += " milestone";
+          dot.className = cls;
+          dot.dataset.w = i;
           frag.appendChild(dot);
         }
         gridEl.replaceChildren(frag);
+
+        // Update grid aria-label with milestone count
+        const msCount = milestones.length;
+        gridEl.setAttribute(
+          "aria-label",
+          msCount > 0
+            ? `Life in weeks grid, ${msCount} milestone${msCount === 1 ? "" : "s"} marked`
+            : "Life in weeks grid"
+        );
 
         $("stat-lived").textContent = lived.toLocaleString();
         $("stat-remaining").textContent = remaining.toLocaleString();
@@ -1079,19 +1708,59 @@
         metaEl.hidden = false;
         emptyEl.hidden = true;
 
+        // Enable the add row now that we have data
+        msLabelInput.disabled = false;
+        msDateInput.disabled = false;
+        msPinBtn.disabled = false;
+
+        // Re-render chips
+        renderChips(birthDate);
+
         // Persist state to the URL hash (shareable, no backend).
-        const params = new URLSearchParams({ b: bday, y: String(lifespan) });
+        const paramObj = { b: bday, y: String(lifespan) };
+        const encoded = encodeMilestones(milestones);
+        if (encoded) paramObj.m = encoded;
+        const params = new URLSearchParams(paramObj);
         history.replaceState(null, "", "#" + params.toString());
 
         // Publish computed values so the snapshot renderer is always in sync.
+        // captureState() MUST run AFTER the grid loop (state.lived is set here).
         captureState(bday, lifespan, totalWeeks, lived, remaining, parseFloat(pct));
+
+        // Align desktop gutter flags after the grid is in the DOM.
+        // Use rAF so the browser has laid out the new dots before we measure.
+        if (alignGutterRaf) cancelAnimationFrame(alignGutterRaf);
+        alignGutterRaf = requestAnimationFrame(alignGutter);
       }
 
       function restoreFromHash() {
         const params = new URLSearchParams(location.hash.slice(1));
         if (params.get("b")) birthdayEl.value = params.get("b");
         if (params.get("y")) lifespanEl.value = params.get("y");
+        // Decode milestones; totalWeeks requires b+y to be parsed first.
+        const lifespan = Math.min(120, Math.max(1, Number(params.get("y")) || 90));
+        const totalWeeks = lifespan * WEEKS_PER_YEAR;
+        const mRaw = params.get("m");
+        if (mRaw) {
+          milestones = decodeMilestones(mRaw, totalWeeks);
+        }
       }
+
+      // ── Delegated click listener on #grid ─────────────────────────────────
+      // One handler for the whole grid. Resolves the week index from data-w
+      // then either removes the milestone (pinned dot) or prefills the date.
+      // Attached once at boot; survives replaceChildren().
+      gridEl.addEventListener("click", (e) => {
+        const dot = e.target.closest(".wk");
+        if (!dot) return;
+        const week = parseInt(dot.dataset.w, 10);
+        if (isNaN(week)) return;
+        if (milestoneAt(week)) {
+          removeMilestone(week);
+        } else {
+          prefillDate(week);
+        }
+      });
 
       // ── Event wiring ──────────────────────────────────────────────────────
 
@@ -1122,6 +1791,13 @@
 
       downloadBtn.addEventListener("click", triggerDownload);
       nativeShareBtn.addEventListener("click", triggerNativeShare);
+
+      msAddForm.addEventListener("submit", (e) => {
+        e.preventDefault();
+        addMilestone(msLabelInput.value, msDateInput.value);
+        msLabelInput.value = "";
+        msDateInput.value = "";
+      });
 
       // ── Boot ──────────────────────────────────────────────────────────────
 
