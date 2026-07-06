@@ -822,7 +822,8 @@
       // encoded in the URL hash so a link fully reconstructs the view; nothing
       // is sent to a server.
       const WEEKS_PER_YEAR = 52;
-      const MS_PER_WEEK = 7 * 24 * 60 * 60 * 1000;
+      const MS_PER_DAY  = 24 * 60 * 60 * 1000;
+      const MS_PER_WEEK = 7 * MS_PER_DAY;
 
       // ── Milestone constants ───────────────────────────────────────────────
       const MAX_MILESTONES = 12;
@@ -938,13 +939,25 @@
 
       // ── Pure helper: date string → week index (0-based from birthday) ────
       // Returns null if before birthday or date is invalid.
+      //
+      // Uses local-calendar day arithmetic (same convention as dateForWeek) so
+      // that weekForDate and dateForWeek are symmetric: clicking week N prefills
+      // dateForWeek(N), and submitting that date resolves back to week N, even
+      // across DST transitions. The raw ms difference between two local-midnight
+      // dates can be off by ±1 h when a DST boundary falls between them; dividing
+      // by MS_PER_DAY and rounding (not flooring) eliminates that error. We then
+      // floor-divide the resulting integer day count by 7 to get the week index.
       function weekForDate(birthDate, dateStr) {
         if (!dateStr) return null;
         const d = new Date(dateStr + "T00:00:00");
         if (isNaN(d.getTime())) return null;
-        const diff = d.getTime() - birthDate.getTime();
-        if (diff < 0) return null;
-        return Math.floor(diff / MS_PER_WEEK);
+        // Build both endpoints as local-midnight dates using calendar components
+        // so the comparison is in local time, not UTC epoch arithmetic.
+        const bLocal = new Date(birthDate.getFullYear(), birthDate.getMonth(), birthDate.getDate());
+        const dLocal = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+        const diffDays = Math.round((dLocal.getTime() - bLocal.getTime()) / MS_PER_DAY);
+        if (diffDays < 0) return null;
+        return Math.floor(diffDays / 7);
       }
 
       // ── Pure helper: week index → Date (for chip age tag / prefill) ───────
