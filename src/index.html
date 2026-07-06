@@ -817,7 +817,56 @@
         drawFooter(W, H);
       }
 
-      // Summary card: big % + decade band.
+      // Draws one dot per decade inside the given band.
+      // Each dot is colored by whether that decade is fully lived, the current one, or future.
+      function drawDecadeBand(left, right, top, bottom) {
+        const WEEKS_PER_DECADE = state.weeksPerYear * 10;
+        const decades = Math.ceil(state.lifespanYears / 10);
+        const availW = right - left;
+        const availH = bottom - top;
+
+        // Size each dot to fit all decades in a single row with a 20% gap between them.
+        const cellFromW = availW / (decades + (decades - 1) * 0.2);
+        const cell = Math.min(Math.floor(cellFromW), availH);
+        const gap = Math.round(cell * 0.2);
+
+        const rowW = decades * cell + (decades - 1) * gap;
+        const originX = left + (availW - rowW) / 2;
+        const originY = top + (availH - cell) / 2;
+        const r = cell / 2;
+
+        for (let d = 0; d < decades; d++) {
+          const decadeStart = d * WEEKS_PER_DECADE;       // first week of this decade
+          const decadeEnd   = (d + 1) * WEEKS_PER_DECADE; // first week of next decade
+          let fill;
+          if (state.lived >= decadeEnd) {
+            fill = COLORS.lived;     // decade fully elapsed
+          } else if (state.lived > decadeStart) {
+            fill = COLORS.current;   // decade in progress (current)
+          } else {
+            fill = COLORS.future;    // decade not yet started
+          }
+
+          const x = originX + d * (cell + gap);
+          const y = originY;
+
+          ctx.fillStyle = fill;
+          ctx.beginPath();
+          ctx.arc(x + r, y + r, r, 0, Math.PI * 2);
+          ctx.fill();
+
+          // Ring on the current decade (mirrors the week-grid current-week ring)
+          if (state.lived > decadeStart && state.lived < decadeEnd) {
+            ctx.strokeStyle = COLORS.gold;
+            ctx.lineWidth = Math.max(1, r * 0.18);
+            ctx.beginPath();
+            ctx.arc(x + r, y + r, r + Math.max(1, r * 0.18), 0, Math.PI * 2);
+            ctx.stroke();
+          }
+        }
+      }
+
+      // Summary card: big % + decade band (one dot per decade).
       function renderSummary(W, H) {
         drawFrame(W, H);
 
@@ -839,10 +888,10 @@
         ctx.fillStyle = COLORS.muted;
         ctx.fillText("of my life, elapsed", W / 2, Math.round(H * 0.46) + SUB_FONT * 2);
 
-        // Decade band: one dot per decade (condensed mini-grid)
+        // Decade band: one large dot per decade, horizontally centered.
         const BAND_TOP = Math.round(H * 0.6);
         const BAND_BOTTOM = Math.round(H * 0.82);
-        drawLifeGrid(Math.round(W * 0.06), Math.round(W * 0.94), BAND_TOP, BAND_BOTTOM);
+        drawDecadeBand(Math.round(W * 0.06), Math.round(W * 0.94), BAND_TOP, BAND_BOTTOM);
 
         drawFooter(W, H);
       }
