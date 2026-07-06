@@ -8,6 +8,17 @@
       name="description"
       content="Your whole life as a scrollable grid of weeks. Enter your birthday and see how many you've lived — and how many might be left."
     />
+    <!-- Open Graph / Twitter -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://weeks.danbing.app" />
+    <meta property="og:title" content="weeks — your life in weeks" />
+    <meta
+      property="og:description"
+      content="Your whole life as a scrollable grid of weeks. Enter your birthday and see how many you've lived — and how many might be left."
+    />
+    <meta property="og:image" content="https://weeks.danbing.app/og-image.png" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:image" content="https://weeks.danbing.app/og-image.png" />
     <link
       rel="preconnect"
       href="https://fonts.googleapis.com"
@@ -147,6 +158,47 @@
         margin-top: 0.25rem;
       }
 
+      /* ── Action row (share button) ─────────────────────────────────────── */
+      .action-row {
+        max-width: 900px;
+        margin: -0.75rem auto 2rem;
+        display: flex;
+        justify-content: flex-end;
+      }
+
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        font-family: var(--font-display);
+        font-size: 0.875rem;
+        font-weight: 500;
+        border-radius: 999px;
+        padding: 0.45rem 1.1rem;
+        cursor: pointer;
+        transition: box-shadow 0.15s, opacity 0.15s, background 0.15s;
+      }
+
+      .btn-share {
+        background: transparent;
+        border: 1px solid var(--accent-gold);
+        color: var(--accent-gold);
+      }
+
+      .btn-share:hover:not(:disabled) {
+        box-shadow: 0 0 0 3px rgba(201, 168, 76, 0.25);
+      }
+
+      .btn-share:disabled {
+        opacity: 0.35;
+        cursor: not-allowed;
+      }
+
+      .btn-share:focus-visible {
+        outline: 2px solid var(--accent-gold);
+        outline-offset: 2px;
+      }
+
       /* ── The grid ──────────────────────────────────────────────────────── */
       .grid-wrap {
         max-width: 900px;
@@ -204,6 +256,221 @@
       .privacy {
         margin-bottom: 0.5rem;
       }
+
+      /* ── Share sheet overlay ───────────────────────────────────────────── */
+      .overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.6);
+        backdrop-filter: blur(6px);
+        -webkit-backdrop-filter: blur(6px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 100;
+        padding: 1rem;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.18s;
+      }
+
+      .overlay.open {
+        opacity: 1;
+        pointer-events: auto;
+      }
+
+      .sheet {
+        background: #23232a;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 20px;
+        padding: 1.5rem;
+        width: min(480px, 100%);
+        max-height: calc(100vh - 2rem);
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 1.25rem;
+        transform: scale(0.95);
+        transition: transform 0.18s;
+      }
+
+      .overlay.open .sheet {
+        transform: scale(1);
+      }
+
+      .sheet-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+
+      .sheet-header h2 {
+        font-family: var(--font-serif);
+        font-weight: 400;
+        font-size: 1.15rem;
+        letter-spacing: -0.01em;
+      }
+
+      .sheet-close {
+        background: transparent;
+        border: none;
+        color: var(--text-muted);
+        font-size: 1.4rem;
+        line-height: 1;
+        cursor: pointer;
+        padding: 0.25rem 0.4rem;
+        border-radius: 6px;
+        transition: color 0.12s;
+      }
+
+      .sheet-close:hover {
+        color: var(--text-primary);
+      }
+
+      .sheet-close:focus-visible {
+        outline: 2px solid var(--accent-gold);
+        outline-offset: 2px;
+      }
+
+      /* ── Format toggle ─────────────────────────────────────────────────── */
+      .format-toggle {
+        display: flex;
+        gap: 0.5rem;
+      }
+
+      .format-toggle button {
+        flex: 1;
+        background: rgba(255, 255, 255, 0.06);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 8px;
+        color: var(--text-muted);
+        font-family: var(--font-display);
+        font-size: 0.8rem;
+        font-weight: 500;
+        padding: 0.45rem 0.5rem;
+        cursor: pointer;
+        transition: background 0.12s, color 0.12s, border-color 0.12s;
+      }
+
+      .format-toggle button[aria-pressed="true"] {
+        background: rgba(201, 168, 76, 0.15);
+        border-color: var(--accent-gold);
+        color: var(--accent-gold);
+      }
+
+      .format-toggle button:hover:not([aria-pressed="true"]) {
+        background: rgba(255, 255, 255, 0.1);
+        color: var(--text-primary);
+      }
+
+      .format-toggle button:focus-visible {
+        outline: 2px solid var(--accent-gold);
+        outline-offset: 2px;
+      }
+
+      /* ── Canvas preview ────────────────────────────────────────────────── */
+      .preview {
+        background: rgba(0, 0, 0, 0.25);
+        border-radius: 12px;
+        overflow: hidden;
+        width: 100%;
+      }
+
+      .preview[data-ratio="portrait"] {
+        aspect-ratio: 4 / 5;
+      }
+
+      .preview[data-ratio="square"] {
+        aspect-ratio: 1;
+      }
+
+      .preview canvas {
+        display: block;
+        width: 100%;
+        height: 100%;
+      }
+
+      /* ── Sheet actions ─────────────────────────────────────────────────── */
+      .sheet-actions {
+        display: flex;
+        flex-direction: column;
+        gap: 0.65rem;
+      }
+
+      .btn-download {
+        background: var(--accent-gold);
+        border: none;
+        color: #1a1a1f;
+        font-weight: 700;
+        font-size: 0.925rem;
+        padding: 0.7rem 1.25rem;
+        width: 100%;
+        justify-content: center;
+      }
+
+      .btn-download:hover {
+        box-shadow: 0 0 0 3px rgba(201, 168, 76, 0.35);
+      }
+
+      .btn-native-share {
+        background: rgba(255, 255, 255, 0.07);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        color: var(--text-primary);
+        font-size: 0.925rem;
+        padding: 0.65rem 1.25rem;
+        width: 100%;
+        justify-content: center;
+      }
+
+      .btn-native-share:hover {
+        background: rgba(255, 255, 255, 0.12);
+      }
+
+      .btn-download:focus-visible,
+      .btn-native-share:focus-visible {
+        outline: 2px solid var(--accent-gold);
+        outline-offset: 2px;
+      }
+
+      .privacy-hint {
+        display: flex;
+        align-items: flex-start;
+        gap: 0.4rem;
+        font-size: 0.75rem;
+        color: var(--text-muted);
+        line-height: 1.4;
+      }
+
+      .privacy-hint .lock {
+        flex-shrink: 0;
+        margin-top: 0.05rem;
+      }
+
+      /* ── Toast ─────────────────────────────────────────────────────────── */
+      .toast {
+        position: fixed;
+        bottom: 2rem;
+        left: 50%;
+        transform: translateX(-50%) translateY(0.5rem);
+        background: rgba(255, 255, 255, 0.12);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        border-radius: 999px;
+        color: var(--text-primary);
+        font-size: 0.875rem;
+        font-weight: 500;
+        padding: 0.55rem 1.25rem;
+        z-index: 200;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.2s, transform 0.2s;
+      }
+
+      .toast.show {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+      }
     </style>
   </head>
   <body>
@@ -240,6 +507,15 @@
       </div>
     </section>
 
+    <div class="action-row" id="action-row">
+      <button
+        id="open-share"
+        class="btn btn-share"
+        aria-haspopup="dialog"
+        disabled
+      >Save a snapshot</button>
+    </div>
+
     <div class="grid-wrap">
       <div class="grid-meta" id="grid-meta" hidden>
         <span>each row = one year (52 weeks)</span>
@@ -258,15 +534,57 @@
       </p>
       <p>
         a <a href="https://danbing.app">danbing.app</a> toy · inspired by Tim
-        Urban's “Your Life in Weeks”
+        Urban's "Your Life in Weeks"
       </p>
     </footer>
+
+    <!-- ── Share sheet overlay ─────────────────────────────────────────────── -->
+    <div
+      id="overlay"
+      class="overlay"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="sheet-title"
+    >
+      <div class="sheet" id="sheet">
+        <div class="sheet-header">
+          <h2 id="sheet-title">Save a snapshot</h2>
+          <button class="sheet-close" id="sheet-close" aria-label="Close">&times;</button>
+        </div>
+
+        <div
+          class="format-toggle"
+          role="group"
+          aria-label="Layout"
+          id="format-toggle"
+        >
+          <button id="fmt-both" aria-pressed="true">Both</button>
+          <button id="fmt-full" aria-pressed="false">Full grid</button>
+          <button id="fmt-summary" aria-pressed="false">Summary card</button>
+        </div>
+
+        <div class="preview" data-ratio="portrait" id="preview">
+          <canvas id="snap"></canvas>
+        </div>
+
+        <div class="sheet-actions">
+          <button class="btn btn-download" id="download">Download PNG</button>
+          <button class="btn btn-native-share" id="native-share" hidden>Share&hellip;</button>
+          <p class="privacy-hint">
+            <span class="lock" aria-hidden="true">&#x1F512;</span>
+            <span>Rendered entirely in your browser. Your birthday is never sent anywhere.</span>
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Toast ──────────────────────────────────────────────────────────── -->
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
     <script>
       // weeks — client-side only. State (birthday + lifespan) is encoded in the
       // URL hash so a link fully reconstructs the view; nothing is sent to a
-      // server. MVP scope: input → grid → live stats. Share-as-PNG and
-      // milestones are deliberately deferred to follow-up issues.
+      // server.
       const WEEKS_PER_YEAR = 52;
       const MS_PER_WEEK = 7 * 24 * 60 * 60 * 1000;
 
@@ -277,6 +595,444 @@
       const statsEl = $("stats");
       const metaEl = $("grid-meta");
       const emptyEl = $("empty");
+      const openShareBtn = $("open-share");
+      const overlayEl = $("overlay");
+      const sheetCloseBtn = $("sheet-close");
+      const downloadBtn = $("download");
+      const nativeShareBtn = $("native-share");
+      const toastEl = $("toast");
+      const snapCanvas = $("snap");
+      const previewEl = $("preview");
+
+      // ── Shared render state ──────────────────────────────────────────────
+      // Populated by captureState() at the end of each successful render().
+      // The snapshot renderer reads from here so the PNG always matches what
+      // the visitor is looking at. Nothing here is ever transmitted.
+      const state = {
+        birthday: "",        // "YYYY-MM-DD" (used only for download filename display, not transmitted)
+        lifespanYears: 90,
+        weeksPerYear: WEEKS_PER_YEAR,
+        totalWeeks: 4680,
+        lived: 0,
+        remaining: 0,
+        pct: 0,              // number, one decimal (e.g. 38.6)
+        hasData: false,
+      };
+
+      // ── Format table ─────────────────────────────────────────────────────
+      const FORMATS = {
+        both:    { w: 1080, h: 1350, ratio: "portrait", label: "Both" },
+        full:    { w: 1080, h: 1350, ratio: "portrait", label: "Full grid" },
+        summary: { w: 1080, h: 1080, ratio: "square",   label: "Summary card" },
+      };
+      let format = "both";
+
+      // ── Canvas palette (mirrors CSS tokens exactly) ───────────────────────
+      const COLORS = {
+        bg: "#1a1a1f",
+        text: "#f0f0f0",
+        muted: "rgba(255,255,255,0.45)",
+        gold: "#c9a84c",
+        lived: "#c9a84c",
+        current: "#f5f0e8",
+        future: "rgba(255,255,255,0.12)",
+      };
+
+      // ── Canvas rendering context (reused across calls) ────────────────────
+      const ctx = snapCanvas.getContext("2d");
+
+      // ────────────────────────────────────────────────────────────────────
+      // Per-dot color decision — extension point for issue #2 (milestones).
+      // Returns { fill } for week index i (0-based).
+      // ────────────────────────────────────────────────────────────────────
+      function weekStyle(i) {
+        if (i < state.lived - 1) return { fill: COLORS.lived };
+        if (i === state.lived - 1) return { fill: COLORS.current };
+        return { fill: COLORS.future };
+      }
+
+      // ── Shared frame helpers ─────────────────────────────────────────────
+
+      // Draws the background and subtle dot-grid texture.
+      function drawFrame(W, H) {
+        ctx.fillStyle = COLORS.bg;
+        ctx.fillRect(0, 0, W, H);
+
+        // Subtle dot-grid texture (mirrors body background-image)
+        const spacing = 32;
+        const dotR = 1;
+        ctx.fillStyle = "rgba(255,255,255,0.04)";
+        for (let x = spacing / 2; x < W; x += spacing) {
+          for (let y = spacing / 2; y < H; y += spacing) {
+            ctx.beginPath();
+            ctx.arc(x, y, dotR, 0, Math.PI * 2);
+            ctx.fill();
+          }
+        }
+      }
+
+      // Draws "your life in weeks" with gold italic "weeks".
+      // baseline = y of the text baseline.
+      function drawTitle(W, baseline) {
+        const FONT_SIZE = Math.round(W * 0.048);
+        ctx.textBaseline = "alphabetic";
+        ctx.textAlign = "left";
+
+        // Measure prefix on the upright font, suffix on the italic font,
+        // so the total width used to center the pair is accurate.
+        ctx.font = `400 ${FONT_SIZE}px "Libre Baskerville", Georgia, serif`;
+        const prefix = "your life in ";
+        const prefixW = ctx.measureText(prefix).width;
+
+        ctx.font = `italic 400 ${FONT_SIZE}px "Libre Baskerville", Georgia, serif`;
+        const suffix = "weeks";
+        const suffixW = ctx.measureText(suffix).width;
+
+        const startX = Math.round((W - prefixW - suffixW) / 2);
+
+        ctx.font = `400 ${FONT_SIZE}px "Libre Baskerville", Georgia, serif`;
+        ctx.fillStyle = COLORS.text;
+        ctx.fillText(prefix, startX, baseline);
+
+        ctx.font = `italic 400 ${FONT_SIZE}px "Libre Baskerville", Georgia, serif`;
+        ctx.fillStyle = COLORS.gold;
+        ctx.fillText(suffix, startX + prefixW, baseline);
+      }
+
+      // Draws the footer wordmark and stat line.
+      function drawFooter(W, H) {
+        const FONT_SIZE = Math.round(W * 0.026);
+        const PAD = Math.round(H * 0.025);
+
+        ctx.textAlign = "center";
+        ctx.textBaseline = "alphabetic";
+
+        // Wordmark
+        ctx.font = `500 ${FONT_SIZE}px "DM Sans", system-ui, sans-serif`;
+        ctx.fillStyle = COLORS.gold;
+        ctx.fillText("weeks.danbing.app", W / 2, H - PAD - FONT_SIZE * 1.5);
+
+        // Stat line
+        const statLine = `${state.pct}% elapsed · ${state.lifespanYears}-year life`;
+        ctx.font = `400 ${Math.round(FONT_SIZE * 0.85)}px "DM Sans", system-ui, sans-serif`;
+        ctx.fillStyle = COLORS.muted;
+        ctx.fillText(statLine, W / 2, H - PAD);
+      }
+
+      // Draws the full 52×N week grid inside the given bounding rectangle.
+      // The grid is centered vertically within the band.
+      function drawLifeGrid(left, right, top, bottom) {
+        const COLS = 52;
+        const rows = Math.ceil(state.totalWeeks / COLS);
+        const availW = right - left;
+        const availH = bottom - top;
+
+        // Cell size = min of width-constrained and height-constrained sizes.
+        // Gap is 15% of cell size.
+        const cellFromW = availW / (COLS + (COLS - 1) * 0.15);
+        const cellFromH = availH / (rows + (rows - 1) * 0.15);
+        const cell = Math.floor(Math.min(cellFromW, cellFromH));
+        const gap = Math.round(cell * 0.15);
+
+        const gridW = COLS * cell + (COLS - 1) * gap;
+        const gridH = rows * cell + (rows - 1) * gap;
+
+        // Center the grid within the band
+        const originX = left + (availW - gridW) / 2;
+        const originY = top + (availH - gridH) / 2;
+
+        for (let i = 0; i < state.totalWeeks; i++) {
+          const col = i % COLS;
+          const row = Math.floor(i / COLS);
+          const x = originX + col * (cell + gap);
+          const y = originY + row * (cell + gap);
+          const r = cell / 2;
+
+          const { fill } = weekStyle(i);
+          ctx.fillStyle = fill;
+          ctx.beginPath();
+          ctx.arc(x + r, y + r, r, 0, Math.PI * 2);
+          ctx.fill();
+
+          // Current week ring (mirrors CSS box-shadow: 0 0 0 2px --accent-gold)
+          if (i === state.lived - 1) {
+            ctx.strokeStyle = COLORS.gold;
+            ctx.lineWidth = Math.max(1, r * 0.2);
+            ctx.beginPath();
+            ctx.arc(x + r, y + r, r + Math.max(1, r * 0.2), 0, Math.PI * 2);
+            ctx.stroke();
+          }
+        }
+      }
+
+      // ── Layout renderers ─────────────────────────────────────────────────
+
+      // Both: hero stat band on top, full grid below.
+      function renderBoth(W, H) {
+        drawFrame(W, H);
+
+        const TITLE_TOP = Math.round(H * 0.055);
+        const TITLE_FONT = Math.round(W * 0.048);
+        drawTitle(W, TITLE_TOP + TITLE_FONT);
+
+        // Hero stat band
+        const HERO_TOP = Math.round(H * 0.12);
+        const HERO_H = Math.round(H * 0.2);
+        const HERO_FONT = Math.round(W * 0.18);
+
+        ctx.textAlign = "center";
+        ctx.textBaseline = "alphabetic";
+        ctx.font = `400 ${HERO_FONT}px "Libre Baskerville", Georgia, serif`;
+        ctx.fillStyle = COLORS.gold;
+        ctx.fillText(`${state.pct}%`, W / 2, HERO_TOP + HERO_H * 0.75);
+
+        const SUB_FONT = Math.round(W * 0.032);
+        ctx.font = `400 ${SUB_FONT}px "DM Sans", system-ui, sans-serif`;
+        ctx.fillStyle = COLORS.muted;
+        ctx.fillText("of my life, elapsed", W / 2, HERO_TOP + HERO_H * 0.75 + SUB_FONT * 1.6);
+
+        // Grid occupies the rest between the hero band and footer
+        const GRID_TOP = HERO_TOP + HERO_H + Math.round(H * 0.04);
+        const FOOTER_BAND = Math.round(H * 0.1);
+        const GRID_BOTTOM = H - FOOTER_BAND;
+
+        drawLifeGrid(Math.round(W * 0.05), Math.round(W * 0.95), GRID_TOP, GRID_BOTTOM);
+        drawFooter(W, H);
+      }
+
+      // Full grid: grid only, with a one-line stat caption.
+      function renderFull(W, H) {
+        drawFrame(W, H);
+
+        const TITLE_TOP = Math.round(H * 0.045);
+        const TITLE_FONT = Math.round(W * 0.048);
+        drawTitle(W, TITLE_TOP + TITLE_FONT);
+
+        // Grid occupies the middle band
+        const GRID_TOP = Math.round(H * 0.115);
+        const FOOTER_BAND = Math.round(H * 0.1);
+        const GRID_BOTTOM = H - FOOTER_BAND;
+
+        drawLifeGrid(Math.round(W * 0.04), Math.round(W * 0.96), GRID_TOP, GRID_BOTTOM);
+        drawFooter(W, H);
+      }
+
+      // Draws one dot per decade inside the given band.
+      // Each dot is colored by whether that decade is fully lived, the current one, or future.
+      function drawDecadeBand(left, right, top, bottom) {
+        const WEEKS_PER_DECADE = state.weeksPerYear * 10;
+        const decades = Math.ceil(state.lifespanYears / 10);
+        const availW = right - left;
+        const availH = bottom - top;
+
+        // Size each dot to fit all decades in a single row with a 20% gap between them.
+        const cellFromW = availW / (decades + (decades - 1) * 0.2);
+        const cell = Math.min(Math.floor(cellFromW), availH);
+        const gap = Math.round(cell * 0.2);
+
+        const rowW = decades * cell + (decades - 1) * gap;
+        const originX = left + (availW - rowW) / 2;
+        const originY = top + (availH - cell) / 2;
+        const r = cell / 2;
+
+        for (let d = 0; d < decades; d++) {
+          const decadeStart = d * WEEKS_PER_DECADE;       // first week of this decade
+          const decadeEnd   = (d + 1) * WEEKS_PER_DECADE; // first week of next decade
+          let fill;
+          if (state.lived >= decadeEnd) {
+            fill = COLORS.lived;     // decade fully elapsed
+          } else if (state.lived > decadeStart) {
+            fill = COLORS.current;   // decade in progress (current)
+          } else {
+            fill = COLORS.future;    // decade not yet started
+          }
+
+          const x = originX + d * (cell + gap);
+          const y = originY;
+
+          ctx.fillStyle = fill;
+          ctx.beginPath();
+          ctx.arc(x + r, y + r, r, 0, Math.PI * 2);
+          ctx.fill();
+
+          // Ring on the current decade (mirrors the week-grid current-week ring)
+          if (state.lived > decadeStart && state.lived < decadeEnd) {
+            ctx.strokeStyle = COLORS.gold;
+            ctx.lineWidth = Math.max(1, r * 0.18);
+            ctx.beginPath();
+            ctx.arc(x + r, y + r, r + Math.max(1, r * 0.18), 0, Math.PI * 2);
+            ctx.stroke();
+          }
+        }
+      }
+
+      // Summary card: big % + decade band (one dot per decade).
+      function renderSummary(W, H) {
+        drawFrame(W, H);
+
+        const TITLE_TOP = Math.round(H * 0.065);
+        const TITLE_FONT = Math.round(W * 0.048);
+        drawTitle(W, TITLE_TOP + TITLE_FONT);
+
+        // Big percentage
+        const PCT_FONT = Math.round(W * 0.22);
+        ctx.textAlign = "center";
+        ctx.textBaseline = "alphabetic";
+        ctx.font = `400 ${PCT_FONT}px "Libre Baskerville", Georgia, serif`;
+        ctx.fillStyle = COLORS.gold;
+        ctx.fillText(`${state.pct}%`, W / 2, Math.round(H * 0.46));
+
+        // Subtitle
+        const SUB_FONT = Math.round(W * 0.038);
+        ctx.font = `400 ${SUB_FONT}px "DM Sans", system-ui, sans-serif`;
+        ctx.fillStyle = COLORS.muted;
+        ctx.fillText("of my life, elapsed", W / 2, Math.round(H * 0.46) + SUB_FONT * 2);
+
+        // Decade band: one large dot per decade, horizontally centered.
+        const BAND_TOP = Math.round(H * 0.6);
+        const BAND_BOTTOM = Math.round(H * 0.82);
+        drawDecadeBand(Math.round(W * 0.06), Math.round(W * 0.94), BAND_TOP, BAND_BOTTOM);
+
+        drawFooter(W, H);
+      }
+
+      // Master render dispatcher — sets canvas dimensions from FORMATS table
+      // and paints the active layout.
+      function renderSnapshot() {
+        const fmt = FORMATS[format];
+        const W = fmt.w;
+        const H = fmt.h;
+        snapCanvas.width = W;
+        snapCanvas.height = H;
+
+        if (format === "both")    renderBoth(W, H);
+        else if (format === "full")    renderFull(W, H);
+        else if (format === "summary") renderSummary(W, H);
+      }
+
+      // ── Sheet open/close ─────────────────────────────────────────────────
+
+      function openSheet() {
+        overlayEl.classList.add("open");
+        // Update preview ratio
+        previewEl.setAttribute("data-ratio", FORMATS[format].ratio);
+        // Paint — if fonts aren't ready yet, paint immediately then repaint when ready
+        renderSnapshot();
+        document.fonts.ready.then(() => {
+          if (overlayEl.classList.contains("open")) renderSnapshot();
+        });
+        // Focus the close button
+        sheetCloseBtn.focus();
+      }
+
+      function closeSheet() {
+        overlayEl.classList.remove("open");
+        openShareBtn.focus();
+      }
+
+      // ── Format toggle ─────────────────────────────────────────────────────
+
+      function setFormat(f) {
+        format = f;
+        // Update aria-pressed on all three toggle buttons
+        $("fmt-both").setAttribute("aria-pressed", f === "both" ? "true" : "false");
+        $("fmt-full").setAttribute("aria-pressed", f === "full" ? "true" : "false");
+        $("fmt-summary").setAttribute("aria-pressed", f === "summary" ? "true" : "false");
+        // Update preview aspect ratio
+        previewEl.setAttribute("data-ratio", FORMATS[f].ratio);
+        renderSnapshot();
+      }
+
+      // ── captureState — called at end of a successful render() ─────────────
+
+      function captureState(birthday, lifespanYears, totalWeeks, lived, remaining, pct) {
+        state.birthday = birthday;
+        state.lifespanYears = lifespanYears;
+        state.weeksPerYear = WEEKS_PER_YEAR;
+        state.totalWeeks = totalWeeks;
+        state.lived = lived;
+        state.remaining = remaining;
+        state.pct = parseFloat(pct);
+        state.hasData = true;
+        openShareBtn.disabled = false;
+      }
+
+      // ── Toast ─────────────────────────────────────────────────────────────
+
+      let toastTimer = null;
+
+      function showToast(msg) {
+        toastEl.textContent = msg;
+        toastEl.classList.add("show");
+        if (toastTimer) clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => {
+          toastEl.classList.remove("show");
+        }, 2200);
+      }
+
+      // ── Native share capability detection ────────────────────────────────
+      // We need a real File to test canShare({files}), so we detect once on
+      // page load (after fonts, so we have a canvas available).
+      let nativeShareSupported = false;
+
+      function detectNativeShare() {
+        if (!navigator.canShare) return;
+        try {
+          // Create a minimal 1×1 PNG blob to test canShare({files})
+          const testCanvas = document.createElement("canvas");
+          testCanvas.width = 1;
+          testCanvas.height = 1;
+          testCanvas.toBlob((blob) => {
+            if (!blob) return;
+            const testFile = new File([blob], "test.png", { type: "image/png" });
+            if (navigator.canShare({ files: [testFile] })) {
+              nativeShareSupported = true;
+              nativeShareBtn.hidden = false;
+            }
+          }, "image/png");
+        } catch (_) {
+          // canShare may throw on some platforms — treat as unsupported
+        }
+      }
+
+      // ── Download / Share actions ─────────────────────────────────────────
+
+      function triggerDownload() {
+        snapCanvas.toBlob((blob) => {
+          if (!blob) {
+            showToast("Couldn’t render — try again");
+            return;
+          }
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = `my-life-in-weeks-${format}.png`;
+          a.click();
+          URL.revokeObjectURL(url);
+          showToast("Snapshot saved ✓");
+        }, "image/png");
+      }
+
+      function triggerNativeShare() {
+        snapCanvas.toBlob((blob) => {
+          if (!blob) {
+            showToast("Couldn’t render — try again");
+            return;
+          }
+          const file = new File([blob], `my-life-in-weeks-${format}.png`, { type: "image/png" });
+          navigator.share({
+            title: "My life in weeks",
+            files: [file],
+          }).catch((err) => {
+            // AbortError = user cancelled — swallow silently
+            if (err && err.name !== "AbortError") {
+              showToast("Couldn’t share — try again");
+            }
+          });
+        }, "image/png");
+      }
+
+      // ── Main render ───────────────────────────────────────────────────────
 
       function weeksLived(birthDate) {
         return Math.max(0, Math.floor((Date.now() - birthDate.getTime()) / MS_PER_WEEK));
@@ -290,6 +1046,9 @@
           statsEl.hidden = true;
           metaEl.hidden = true;
           emptyEl.hidden = false;
+          // No valid data — keep share button disabled
+          state.hasData = false;
+          openShareBtn.disabled = true;
           return;
         }
 
@@ -323,6 +1082,9 @@
         // Persist state to the URL hash (shareable, no backend).
         const params = new URLSearchParams({ b: bday, y: String(lifespan) });
         history.replaceState(null, "", "#" + params.toString());
+
+        // Publish computed values so the snapshot renderer is always in sync.
+        captureState(bday, lifespan, totalWeeks, lived, remaining, parseFloat(pct));
       }
 
       function restoreFromHash() {
@@ -331,10 +1093,41 @@
         if (params.get("y")) lifespanEl.value = params.get("y");
       }
 
+      // ── Event wiring ──────────────────────────────────────────────────────
+
       birthdayEl.addEventListener("input", render);
       lifespanEl.addEventListener("input", render);
+
+      openShareBtn.addEventListener("click", () => {
+        if (state.hasData) openSheet();
+      });
+
+      sheetCloseBtn.addEventListener("click", closeSheet);
+
+      // Close on backdrop click (not sheet click)
+      overlayEl.addEventListener("click", (e) => {
+        if (e.target === overlayEl) closeSheet();
+      });
+
+      // Close on Esc
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape" && overlayEl.classList.contains("open")) {
+          closeSheet();
+        }
+      });
+
+      $("fmt-both").addEventListener("click", () => setFormat("both"));
+      $("fmt-full").addEventListener("click", () => setFormat("full"));
+      $("fmt-summary").addEventListener("click", () => setFormat("summary"));
+
+      downloadBtn.addEventListener("click", triggerDownload);
+      nativeShareBtn.addEventListener("click", triggerNativeShare);
+
+      // ── Boot ──────────────────────────────────────────────────────────────
+
       restoreFromHash();
       render();
+      detectNativeShare();
     </script>
   </body>
 </html>
