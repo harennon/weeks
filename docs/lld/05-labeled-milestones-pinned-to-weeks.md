@@ -54,18 +54,32 @@ is the user-facing capture; we convert date → week index on pin and never stor
 `weekStyle(i)` as the per-dot decision point, but *only* the canvas `drawLifeGrid()` consults it
 (index.html line 751); the live-grid builder in `render()` (lines 1064-1071) currently inlines its
 own class string and never calls `weekStyle()`. To make marking logic live in one place we:
-- Extend `weekStyle(i)` to return `{ fill, kind, milestone }` where `kind ∈ {"lived","current","future"}`
+- Extend `weekStyle(i, lived)` to return `{ fill, kind, milestone }` where `kind ∈ {"lived","current","future"}`
   (the existing fill decision, made explicit) and `milestone` is the matching milestone object (or
   `null`). This is a pure lookup with no side effects.
-- **Refactor `render()`'s DOM builder to call `weekStyle(i)`** instead of its inline ternary, so the
+- **`weekStyle` must take `lived` as a parameter — do NOT let it read module-level `state.lived`.**
+  This is the ordering fix for the defect the reviewer flagged. Today `weekStyle(i)` reads the
+  module-level `state.lived` (index.html lines 649-650), which is only written by `captureState()`
+  — and `render()` calls `captureState()` at line ~1087, *after* the grid loop at lines 1064-1071.
+  `state.lived` initializes to `0` (line ~616). So a naive refactor that made the DOM builder call
+  `weekStyle(i)` would read a stale `state.lived`: every dot would resolve to `future` on the first
+  (boot) render, and the grid would lag one render behind thereafter — violating the byte-identical
+  regression criterion below. The fix: change the signature to `weekStyle(i, lived)` and pass the
+  value the caller already has. `render()`'s DOM builder passes its **local** `lived` (computed at
+  line ~1059, before the loop). The canvas `drawLifeGrid()` passes `state.lived` (which is correct
+  by the time a snapshot renders, since `captureState()` has already run). This removes `weekStyle`'s
+  dependency on write-ordering entirely; there is no path where it reads a value that hasn't been
+  set yet.
+- **Refactor `render()`'s DOM builder to call `weekStyle(i, lived)`** instead of its inline ternary, so the
   `.wk`/`.wk.lived`/`.wk.current` classes are derived from `kind` and the `.milestone` class is
   appended when `milestone !== null`. This is the explicit live-grid marking path. Without this
   refactor milestones would never appear on the live grid (the current defect the reviewer flagged).
   The class-string mapping is: base `wk`; append ` lived`/` current` per `kind`; append ` milestone`
   when a milestone matches (see State Model for how `.milestone` composes with `.current`).
 - `drawLifeGrid(left,right,top,bottom)` already computes `originX/originY/cell/gap`. Its per-dot loop
-  already reads `weekStyle(i)`; we extend that same loop's post-pass to draw the milestone halo when
-  `milestone !== null` (reusing the current-week ring pattern at lines 757-764). No layout math changes.
+  already reads `weekStyle(i)`; update the call to `weekStyle(i, state.lived)` and extend that same
+  loop's post-pass to draw the milestone halo when `milestone !== null` (reusing the current-week
+  ring pattern at lines 757-764). No layout math changes.
 
 **Milestone affordances live OUTSIDE the `role="img"` grid.** `#grid` is `role="img"` (index.html
 line 524); assistive tech ignores its descendants, so a focusable `role=button`/`aria-label` *inside*
@@ -94,10 +108,26 @@ build — prefer `data-w` to avoid an O(n) index scan), then: if that week has a
 
 **Direction A (desktop) with C (mobile), chosen at render time by viewport width.** A single
 CSS breakpoint (`min-width: 700px` ≈ the point where the 900px-max grid has room for a gutter)
-decides which presentation is active. Both presentations read the same `milestones` array; only
-the DOM/CSS differs. This avoids a JS layout engine — CSS media queries flip between the gutter
-flags (A) and the timeline legend (C). The grid dots themselves (halo + brighter gold) are
-identical in both; only the *labels'* placement changes.
+decides **which presentation is active** — that A-vs-C toggle is purely a CSS media-query outcome,
+no JS state. Both presentations read the same `milestones` array; only the DOM/CSS differs. The grid
+dots themselves (halo + brighter gold) are identical in both; only the *labels'* placement changes.
+
+**Direction-A vertical alignment: a lightweight JS measurement pass, not a layout engine.** The grid
+is a responsive CSS grid (`repeat(52,1fr)`, `gap: clamp(2px,0.4vw,4px)`, inside a 900px-max wrapper),
+so a given year-row's pixel Y offset is *not* knowable to pure CSS — the rendered cell size (and thus
+row pitch) depends on the wrapper's computed width, and the gap is itself a `clamp()`. A pure-CSS
+`calc()` cannot reproduce this responsively, so we do **not** attempt to; the "no JS layout engine"
+principle means we do not lay out the *grid* in JS (CSS grid still owns the 52-column geometry, and the
+grid math is untouched) — it does **not** forbid *reading back* the browser's computed geometry to place
+a few decorative sibling flags. Concretely, when direction A is active, an `alignGutter()` pass runs
+after each `render()` (and on a debounced `resize`): for each milestone it looks up the already-built
+dot via `gridEl.querySelector('[data-w="…"]')` (or the dot reference captured during build), reads the
+dot's position relative to `.grid-wrap` (`dot.offsetTop`, or `getBoundingClientRect` deltas against the
+wrapper), and sets that flag's `top` to the dot's row-center Y. The connector rule spans from the flag
+to that Y. This is O(milestones) (≤ `MAX_MILESTONES`), reads layout once per render/resize, and writes
+only `top`/height on ≤12 absolutely-positioned flags — it measures, it does not compute layout. When
+direction C is active (`< 700px`) the gutter is `display:none` and `alignGutter()` no-ops, so no
+measurement happens on mobile. See Edge Cases 14 and 17.
 
 **Marking = decoration, never a layout change.** A pinned dot keeps its grid cell; we add a
 class (`.wk.milestone`) that brightens the fill, adds a halo (`box-shadow`), and runs a one-shot
@@ -170,20 +200,27 @@ function ageLabel(week: number): string
 **Extended LLD-3 seams (specifications):**
 
 ```js
-function weekStyle(i): { fill: string, kind: "lived"|"current"|"future", milestone: Milestone | null }
+function weekStyle(i, lived): { fill: string, kind: "lived"|"current"|"future", milestone: Milestone | null }
+//   lived: the week-count "you are here" boundary, passed IN by the caller (NOT read from
+//     module-level state.lived — see Approach for the write-ordering hazard this avoids).
+//     kind/fill are decided from `lived`: i < lived-1 -> "lived"; i === lived-1 -> "current";
+//     else "future" (the exact existing decision, made explicit).
 //   fill: unchanged decision. kind: same decision made explicit so the DOM builder can derive its
 //     class string ("wk" + " lived"/" current" per kind). milestone: the milestone whose .week === i,
-//     else null. Pure; no side effects. Called by BOTH the DOM builder in render() (after refactor)
-//     and the canvas drawLifeGrid() loop, so marking logic lives in exactly one place.
+//     else null. Pure; no side effects. Called by BOTH the DOM builder in render() — which passes its
+//     local `lived` computed before the grid loop — and the canvas drawLifeGrid() loop — which passes
+//     state.lived — so marking logic lives in exactly one place and never depends on write-ordering.
 
 function milestoneAt(week: number): Milestone | null   // O(cap) lookup over milestones; used by weekStyle + delegated grid click.
 ```
 
 **Live-grid class mapping (the refactored `render()` DOM builder):** for each week `i`, read
-`{ kind, milestone } = weekStyle(i)`; build class = `"wk"` + (`kind==="lived"` → `" lived"`,
-`kind==="current"` → `" current"`, else `""`) + (`milestone` → `" milestone"`, else `""`). Set the
-dot's `data-w = i` so the delegated `#grid` listener can recover the week index in O(1). No per-dot
-event handlers, no `tabindex`/`role`/`aria-label` on dots (grid is `role="img"`).
+`{ kind, milestone } = weekStyle(i, lived)` — passing the **local** `lived` computed at line ~1059,
+*not* `state.lived` (which is not yet updated inside the loop; see Approach). Build class = `"wk"` +
+(`kind==="lived"` → `" lived"`, `kind==="current"` → `" current"`, else `""`) + (`milestone` →
+`" milestone"`, else `""`). Set the dot's `data-w = i` so the delegated `#grid` listener can recover
+the week index in O(1). No per-dot event handlers, no `tabindex`/`role`/`aria-label` on dots (grid is
+`role="img"`).
 
 **Mutation API (all call render() at the end, which re-serializes hash + repaints):**
 
@@ -192,6 +229,12 @@ function addMilestone(label: string, dateStr: string): void
 //   sanitize label; week = weekForDate(...); reject (toast) if invalid/duplicate/at-cap; push; sort; render().
 function removeMilestone(week: number): void          // filter out by week; render().
 function prefillDate(week: number): void              // set add-row date input to dateForWeek(...).
+
+function alignGutter(): void
+//   Direction-A only (no-op when the gutter is display:none, i.e. < 700px). For each milestone flag,
+//   read its pinned dot's measured Y relative to .grid-wrap and set the flag's `top` (+ connector).
+//   O(milestones). Called at the end of render() and on a debounced window `resize`. Pure measurement
+//   + style write on ≤ MAX_MILESTONES decorative sibling nodes — it does not lay out the grid.
 ```
 
 **New DOM (inside `src/index.html`, after the grid, before/near the action row):**
@@ -202,9 +245,13 @@ function prefillDate(week: number): void              // set add-row date input 
   Submit calls `addMilestone`; `preventDefault`. Disabled until `state.hasData`.
 - Chips: `<ul id="ms-chips" class="ms-chips">` — one `<li>` per milestone: label + `age N` tag +
   a remove `<button aria-label="Remove {label}">×</button>`.
-- Desktop gutter (direction A): `<div id="ms-gutter" class="ms-gutter" aria-hidden="true">` — flags
-  positioned to align with their year-row; a thin gold rule connects flag → row. `aria-hidden`
-  because the chips list is the accessible source of truth; the gutter is decorative reinforcement.
+- Desktop gutter (direction A): `<div id="ms-gutter" class="ms-gutter" aria-hidden="true">` positioned
+  in the right margin of `.grid-wrap` (which is `position: relative`); flags are absolutely positioned
+  inside it. **Their vertical `top` is set by the `alignGutter()` measurement pass** (see Approach) —
+  it reads each pinned dot's measured Y relative to `.grid-wrap` and writes the flag's `top`, so flags
+  track their year-row across all viewport widths without any CSS row-formula. A thin gold rule connects
+  flag → row. `aria-hidden` because the chips list is the accessible source of truth; the gutter is
+  decorative reinforcement. Hidden (`display:none`) below the 700px breakpoint (direction C).
 - Mobile legend (direction C): reuse the `#ms-chips` list styled as an ordered timeline below the grid.
   This list is the accessible, keyboard-operable representation of milestones in BOTH layouts; only
   its CSS presentation changes across the breakpoint.
@@ -227,8 +274,10 @@ function prefillDate(week: number): void              // set add-row date input 
    override). Halo box-shadow radius > current ring so both remain legible ("you are here" + pinned). */
 .wk.current.milestone { background: /* current fill from base .wk.current */; box-shadow: 0 0 0 2px var(--accent-gold), 0 0 0 5px rgba(201,168,76,.35), 0 0 10px 3px rgba(201,168,76,.45); }
 @keyframes ms-pop { 0%{transform:scale(.4);opacity:.3} 60%{transform:scale(1.25)} 100%{transform:scale(1);opacity:1} }
-/* direction A gutter flags: absolute-positioned within .grid-wrap; thin gold connector rule. */
-/* direction C timeline: #ms-chips as ordered list, shown < 700px, gutter hidden. */
+/* direction A gutter flags: .grid-wrap { position: relative } is the containing block; #ms-gutter sits
+   in the right margin, flags position:absolute. Each flag's `top` is written by alignGutter() (JS
+   measurement) — CSS only styles the flag box + thin gold connector rule; it does not compute the row Y. */
+/* direction C timeline: #ms-chips as ordered list, shown < 700px, #ms-gutter { display: none }. */
 @media (prefers-reduced-motion: reduce){ .wk.milestone{ animation: none } }
 ```
 (Exact fill/shadow values are illustrative; the invariant is: `.milestone` alone → gold fill + halo;
@@ -254,7 +303,9 @@ render as small gutter flags on the right margin in the portrait layouts (`both`
   age tags and prefill), the `age N` label, each dot's class string (from `weekStyle(i)`), and the
   `#grid` `aria-label` milestone-count suffix — all recomputed each `render()`.
 - **UI/session (not persisted):** add-row input contents; which presentation (A vs C) is active
-  is purely a CSS media-query outcome, not JS state.
+  is purely a CSS media-query outcome, not JS state. The gutter flags' vertical `top` values (direction
+  A) are **derived, not stored** — recomputed by `alignGutter()` from the live DOM geometry on each
+  render and on debounced resize, so no layout state is persisted or duplicated in JS.
 - **Privacy:** labels are personal text and are treated exactly like the birthday — memory + hash
   only, never transmitted; sanitized on both encode and decode.
 
@@ -307,19 +358,32 @@ render as small gutter flags on the right margin in the portrait layouts (`both`
     `aria-label` announces the milestone count. This is the same accessible path on desktop (chips)
     and mobile (same list styled as a timeline), so the mobile-reveal + keyboard + SR requirements are
     met without any interactive descendant inside `role="img"`.
+17. **Viewport resize / crossing the 700px breakpoint (desktop gutter alignment)** — because the grid
+    is responsive, the pinned dots' pixel Y positions shift when the window resizes. A debounced
+    `resize` listener re-runs `alignGutter()` so flags stay on their rows. Crossing below 700px hides
+    the gutter via CSS (`display:none`) and `alignGutter()` short-circuits (no measurement); crossing
+    back above re-measures on the next `alignGutter()`. No grid geometry is recomputed — only the ≤12
+    decorative flag `top` values.
 
 ## Dependencies
 
 - **`src/index.html` post-LLD-3** — this LLD extends/refactors:
-  - `weekStyle(i)` (lines ~648-652): extend return to `{ fill, kind, milestone }`.
+  - `weekStyle(i)` (lines ~648-652): change signature to `weekStyle(i, lived)` (take `lived` as a
+    parameter instead of reading module-level `state.lived`) and extend return to
+    `{ fill, kind, milestone }`. The parameterization is required to avoid the write-ordering hazard
+    (`state.lived` is set by `captureState()` *after* the grid loop), not optional cleanup.
   - `render()`'s live-grid DOM builder (lines ~1064-1071): **refactor** the inline class ternary to
-    call `weekStyle(i)` and derive classes from `kind` + `milestone`, set `data-w`, and update the
-    `#grid` `aria-label` with the milestone count. (This is the required live-grid marking path.)
-  - `drawLifeGrid` (lines ~724-766): add the milestone halo post-pass in the existing per-dot loop
-    (which already calls `weekStyle(i)`), reusing the current-week ring pattern (lines 757-764).
+    call `weekStyle(i, lived)` — passing the **local** `lived` computed at line ~1059 — and derive
+    classes from `kind` + `milestone`, set `data-w`, and update the `#grid` `aria-label` with the
+    milestone count. (This is the required live-grid marking path.)
+  - `drawLifeGrid` (lines ~724-766): update its `weekStyle(i)` call to `weekStyle(i, state.lived)`
+    (correct here — `captureState()` has already run before any snapshot renders) and add the
+    milestone halo post-pass in the existing per-dot loop, reusing the current-week ring pattern
+    (lines 757-764).
   - `render()` hash write (line ~1083): append `m=` when non-empty.
   - `restoreFromHash()` (lines ~1090-1094): parse `b`/`y` first, then decode `m`.
-  - Boot sequence (`restoreFromHash(); render();`) and a one-time delegated `click` listener on `#grid`.
+  - Boot sequence (`restoreFromHash(); render();`), a one-time delegated `click` listener on `#grid`,
+    and a one-time debounced `resize` listener that calls `alignGutter()` (direction-A flag alignment).
   - `#grid` element (line 524) keeps `role="img"`; milestone dots are decorative descendants and all
     interactive/accessible affordances live in sibling DOM (`#ms-chips`). No new source files.
 - **LLD 3 (`docs/lld/03-share-as-png-snapshot.md`)** — must be implemented first; the milestone
@@ -341,7 +405,10 @@ render as small gutter flags on the right margin in the portrait layouts (`both`
 - Click an empty dot → add-row date prefills to that week; click a pinned dot → it's removed and
   the hash updates. Remove via chip × → same.
 - Desktop (≥700px): gutter flags align to the correct year-rows with connector rules; two
-  milestones in one row don't overlap illegibly (stack/collapse rule holds).
+  milestones in one row don't overlap illegibly (stack/collapse rule holds). **Resize the window
+  (and drag across the 700px breakpoint and back): flags re-align to their rows after resize
+  (`alignGutter()` on debounced resize), the gutter hides below 700px and reappears above it, and
+  the grid dots never shift.**
 - Mobile / narrow (<700px): gutter hidden; ordered timeline legend (`#ms-chips`) lists milestones
   with labels + `age N`; tapping a pinned dot removes it; the label is read from the legend, not the
   dot.
@@ -376,9 +443,27 @@ render as small gutter flags on the right margin in the portrait layouts (`both`
 - Grid dots expose no per-dot `role`/`tabindex`/`aria-label`; the accessibility tree shows `#grid` as
   a single image whose label includes the milestone count, with milestones reachable only via
   `#ms-chips`.
+- **Halo bleed on small dots (QA-tune against the mockup):** dots render ~13–15px with only a 2–4px
+  gap, while the illustrative `.wk.milestone` halo (`box-shadow: 0 0 8px 2px`, ~10px) can visually
+  overlap neighbors. `box-shadow` does not change layout (grid math is untouched), and the reference
+  mockup is the design authority — so QA must compare the shipped halo against
+  `https://harennon.github.io/weeks/labeled-milestones.html` and tune the shadow radius/spread if the
+  bleed reads worse than the mockup. This is visual polish, not a geometry defect.
+- **`ageLabel` vs grid-row consistency (QA confirm):** `ageLabel(week) = floor(week / 52)` divides a
+  real-elapsed-week index (from `weekForDate`, which uses `MS_PER_WEEK` like the existing `weeksLived`)
+  by 52, while real weeks accrue at ~52.18/yr — so the chip's "age N" can be off-by-one from a
+  calendar age near later-life year boundaries. This is *internally consistent* with the 52-week grid
+  rows the user visually compares against (the same convention the whole grid already uses), so it is
+  acceptable; QA should simply confirm the chip's "age N" matches the grid row the pinned dot sits in.
 
 **Regression:**
 - MVP + LLD-3 flows unchanged when no milestones exist: `m` is omitted from the hash; grid, stats,
-  and snapshot render exactly as before. `render()`'s `weekStyle`-driven class output must produce
-  byte-identical `.wk`/`.wk.lived`/`.wk.current` classes to the pre-refactor inline ternary for every
-  week when `milestones` is empty (the DOM-builder refactor must not change existing dot styling).
+  and snapshot render exactly as before. `render()`'s `weekStyle(i, lived)`-driven class output must
+  produce byte-identical `.wk`/`.wk.lived`/`.wk.current` classes to the pre-refactor inline ternary
+  for every week when `milestones` is empty (the DOM-builder refactor must not change existing dot
+  styling).
+- **First/boot render specifically** (the write-ordering guard): on the very first `render()` — before
+  `captureState()` has ever run, so module-level `state.lived` is still its initial `0` — the grid must
+  show the correct lived/current/future dots, proving the DOM builder passes its **local** `lived` into
+  `weekStyle(i, lived)` and does not read the stale `state.lived`. Also verify the grid does not lag one
+  render behind after subsequent edits to birthday/lifespan.
