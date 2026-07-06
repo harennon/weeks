@@ -948,8 +948,13 @@
       }
 
       // ── Pure helper: week index → Date (for chip age tag / prefill) ───────
+      // Uses local calendar arithmetic (year/month/day + N days) so the result is
+      // always local midnight regardless of DST transitions, making the
+      // date→week→date round-trip stable across all timezones.
       function dateForWeek(birthDate, week) {
-        return new Date(birthDate.getTime() + week * MS_PER_WEEK);
+        const days = week * 7;
+        const d = new Date(birthDate.getFullYear(), birthDate.getMonth(), birthDate.getDate() + days);
+        return d;
       }
 
       // ── Pure helper: week index → "age N" label ──────────────────────────
@@ -1511,9 +1516,6 @@
           rowGroups[row].push(ms);
         }
 
-        // Track which dot Y values we’ve already placed a flag at (for stacking)
-        const placedY = {}; // dotY -> count
-
         for (const ms of milestones) {
           const dotEl = gridEl.querySelector(`[data-w="${ms.week}"]`);
           if (!dotEl) continue;
@@ -1587,33 +1589,35 @@
 
       // ── Milestone mutation API ────────────────────────────────────────────
 
+      // Returns true if the milestone was added, false if rejected (toast already shown).
       function addMilestone(labelRaw, dateStr) {
         const label = sanitizeLabel(labelRaw);
         if (!label) {
           showToast("Add a short label");
-          return;
+          return false;
         }
         if (milestones.length >= MAX_MILESTONES) {
           showToast("Up to 12 milestones");
-          return;
+          return false;
         }
         const birthDate = new Date(birthdayEl.value + "T00:00:00");
         const week = weekForDate(birthDate, dateStr);
         if (week === null) {
           showToast("That’s before your birthday");
-          return;
+          return false;
         }
         if (week >= state.totalWeeks) {
           showToast("That’s past the grid — try a longer lifespan");
-          return;
+          return false;
         }
         if (milestoneAt(week) !== null) {
           showToast("You already pinned that week");
-          return;
+          return false;
         }
         milestones.push({ label, week });
         milestones.sort((a, b) => a.week - b.week);
         render();
+        return true;
       }
 
       function removeMilestone(week) {
@@ -1794,9 +1798,11 @@
 
       msAddForm.addEventListener("submit", (e) => {
         e.preventDefault();
-        addMilestone(msLabelInput.value, msDateInput.value);
-        msLabelInput.value = "";
-        msDateInput.value = "";
+        const added = addMilestone(msLabelInput.value, msDateInput.value);
+        if (added) {
+          msLabelInput.value = "";
+          msDateInput.value = "";
+        }
       });
 
       // ── Boot ──────────────────────────────────────────────────────────────
