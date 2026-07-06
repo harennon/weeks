@@ -1,0 +1,713 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>weeks — milestones mockup</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Libre+Baskerville:ital@0;1&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      /* ── Design tokens (inherited from src/index.html) ─────────────────── */
+      :root {
+        --bg-page: #1a1a1f;
+        --text-primary: #f0f0f0;
+        --text-muted: rgba(255, 255, 255, 0.45);
+        --accent-gold: #c9a84c;
+        --dot-lived: #c9a84c;
+        --dot-current: #f5f0e8;
+        --dot-future: rgba(255, 255, 255, 0.12);
+        /* new milestone tokens */
+        --milestone: #e8c65a;
+        --milestone-halo: rgba(232, 198, 90, 0.28);
+        --font-display: "DM Sans", system-ui, sans-serif;
+        --font-serif: "Libre Baskerville", Georgia, serif;
+      }
+
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+
+      body {
+        background-color: var(--bg-page);
+        background-image: radial-gradient(
+          circle,
+          rgba(255, 255, 255, 0.04) 1px,
+          transparent 1px
+        );
+        background-size: 32px 32px;
+        color: var(--text-primary);
+        font-family: var(--font-display);
+        line-height: 1.5;
+        min-height: 100vh;
+        padding: clamp(1.5rem, 4vw, 3rem);
+      }
+
+      header { max-width: 900px; margin: 0 auto 1.25rem; text-align: center; }
+
+      h1 {
+        font-family: var(--font-serif);
+        font-weight: 400;
+        font-size: clamp(2rem, 6vw, 3.25rem);
+        letter-spacing: -0.01em;
+      }
+      h1 em { color: var(--accent-gold); }
+
+      .tagline {
+        color: var(--text-muted);
+        margin-top: 0.5rem;
+        font-size: clamp(0.95rem, 2.5vw, 1.1rem);
+      }
+
+      /* ── Mockup direction switcher (NOT part of the product) ───────────── */
+      .mock-banner {
+        max-width: 900px;
+        margin: 0 auto 2rem;
+        border: 1px dashed rgba(201, 168, 76, 0.4);
+        border-radius: 12px;
+        padding: 0.9rem 1rem;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        align-items: center;
+        justify-content: center;
+      }
+      .mock-banner .lbl {
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+        color: var(--text-muted);
+        margin-right: 0.25rem;
+      }
+      .mock-banner button {
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        color: var(--text-primary);
+        font-family: var(--font-display);
+        font-size: 0.85rem;
+        padding: 0.45rem 0.85rem;
+        border-radius: 999px;
+        cursor: pointer;
+        transition: all 0.18s ease;
+      }
+      .mock-banner button:hover { border-color: var(--accent-gold); }
+      .mock-banner button.active {
+        background: var(--accent-gold);
+        color: #1a1a1f;
+        border-color: var(--accent-gold);
+        font-weight: 700;
+      }
+      .mock-note {
+        max-width: 900px;
+        margin: 0 auto 1.5rem;
+        text-align: center;
+        color: var(--text-muted);
+        font-size: 0.85rem;
+        font-style: italic;
+        font-family: var(--font-serif);
+        min-height: 1.4em;
+      }
+
+      /* ── Controls (existing) + new milestone control ──────────────────── */
+      .controls {
+        max-width: 900px;
+        margin: 0 auto 1.5rem;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1.25rem;
+        align-items: flex-end;
+        justify-content: center;
+      }
+      .field { display: flex; flex-direction: column; gap: 0.35rem; }
+      .field label {
+        font-size: 0.8rem;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--text-muted);
+      }
+      .field input[type="date"],
+      .field input[type="number"],
+      .field input[type="text"] {
+        background: rgba(255, 255, 255, 0.06);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        border-radius: 8px;
+        color: var(--text-primary);
+        font-family: var(--font-display);
+        font-size: 1rem;
+        padding: 0.55rem 0.75rem;
+        color-scheme: dark;
+      }
+      .field input:focus-visible {
+        outline: 2px solid var(--accent-gold);
+        outline-offset: 1px;
+      }
+
+      /* ── Milestone add row (shared across directions) ──────────────────── */
+      .add-milestone {
+        max-width: 900px;
+        margin: 0 auto 1.5rem;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        align-items: flex-end;
+        justify-content: center;
+        padding: 1rem 1.1rem;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 14px;
+        background: rgba(255, 255, 255, 0.02);
+      }
+      .add-milestone .field input[type="text"] { min-width: 200px; }
+      .add-milestone .hint {
+        flex-basis: 100%;
+        text-align: center;
+        color: var(--text-muted);
+        font-size: 0.78rem;
+        margin-bottom: 0.15rem;
+      }
+      .btn-add {
+        background: var(--accent-gold);
+        color: #1a1a1f;
+        font-family: var(--font-display);
+        font-weight: 700;
+        font-size: 0.9rem;
+        border: none;
+        border-radius: 8px;
+        padding: 0.6rem 1.1rem;
+        cursor: pointer;
+        transition: transform 0.12s ease, filter 0.18s ease;
+      }
+      .btn-add:hover { filter: brightness(1.08); }
+      .btn-add:active { transform: translateY(1px); }
+
+      /* ── Milestone chips (list of what you've added) ───────────────────── */
+      .chips {
+        max-width: 900px;
+        margin: 0 auto 1.75rem;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        justify-content: center;
+      }
+      .chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        background: rgba(232, 198, 90, 0.1);
+        border: 1px solid rgba(232, 198, 90, 0.35);
+        color: var(--text-primary);
+        border-radius: 999px;
+        padding: 0.32rem 0.35rem 0.32rem 0.8rem;
+        font-size: 0.85rem;
+      }
+      .chip .dot {
+        width: 7px; height: 7px; border-radius: 50%;
+        background: var(--milestone);
+        box-shadow: 0 0 6px var(--milestone-halo);
+      }
+      .chip .yr { color: var(--text-muted); font-size: 0.78rem; }
+      .chip button {
+        background: transparent;
+        border: none;
+        color: var(--text-muted);
+        cursor: pointer;
+        font-size: 1rem;
+        line-height: 1;
+        padding: 0.1rem 0.35rem;
+        border-radius: 999px;
+        transition: color 0.15s ease, background 0.15s ease;
+      }
+      .chip button:hover { color: #fff; background: rgba(255,255,255,0.1); }
+
+      /* ── The grid ──────────────────────────────────────────────────────── */
+      .grid-wrap { max-width: 900px; margin: 0 auto; }
+      .grid-meta {
+        display: flex;
+        justify-content: space-between;
+        color: var(--text-muted);
+        font-size: 0.8rem;
+        margin-bottom: 0.75rem;
+      }
+
+      /* The grid uses named rows so we can absolutely position labels in
+         directions A and B. We wrap rows so a milestone label can attach to
+         its row without disturbing dot flow. */
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(52, 1fr);
+        gap: clamp(2px, 0.4vw, 4px);
+        position: relative;
+      }
+
+      .wk {
+        aspect-ratio: 1;
+        border-radius: 50%;
+        background: var(--dot-future);
+        position: relative;
+      }
+      .wk.lived { background: var(--dot-lived); }
+      .wk.current {
+        background: var(--dot-current);
+        box-shadow: 0 0 0 2px var(--accent-gold);
+      }
+
+      /* ── Milestone dot marking (shared visual: the pinned week) ────────── */
+      .wk.milestone {
+        background: var(--milestone);
+        box-shadow: 0 0 0 2px var(--milestone), 0 0 8px 1px var(--milestone-halo);
+        z-index: 3;
+      }
+      /* pulse-in when newly added */
+      @keyframes pin-pop {
+        0% { transform: scale(0.4); box-shadow: 0 0 0 0 var(--milestone-halo); }
+        60% { transform: scale(1.35); }
+        100% { transform: scale(1); box-shadow: 0 0 0 2px var(--milestone), 0 0 8px 1px var(--milestone-halo); }
+      }
+      .wk.milestone.just-added { animation: pin-pop 0.5s ease-out; }
+
+      /* Hover tooltip — used as the fallback / mobile reveal in every dir. */
+      .wk.milestone::after {
+        content: attr(data-label);
+        position: absolute;
+        bottom: 150%;
+        left: 50%;
+        transform: translateX(-50%) translateY(4px);
+        white-space: nowrap;
+        background: #26262e;
+        border: 1px solid rgba(232, 198, 90, 0.5);
+        color: var(--text-primary);
+        font-size: 0.72rem;
+        padding: 0.28rem 0.5rem;
+        border-radius: 6px;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.15s ease, transform 0.15s ease;
+        z-index: 10;
+        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+      }
+      .wk.milestone:hover::after,
+      .wk.milestone:focus-visible::after {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+      }
+      .wk.milestone:focus-visible {
+        outline: 2px solid #fff;
+        outline-offset: 2px;
+      }
+
+      /* ══════════════════════════════════════════════════════════════════
+         DIRECTION A — "Margin flags": labels live in a right-hand gutter,
+         connected to their week's row with a thin gold rule.
+         ══════════════════════════════════════════════════════════════════ */
+      body[data-dir="A"] .grid-wrap {
+        display: grid;
+        grid-template-columns: 1fr minmax(140px, 210px);
+        gap: 0.75rem;
+        align-items: start;
+      }
+      body[data-dir="A"] .grid-meta { grid-column: 1 / -1; }
+      body[data-dir="A"] .gutter { display: block; position: relative; }
+      body:not([data-dir="A"]) .gutter { display: none; }
+      .gutter { min-height: 100%; }
+      .flag {
+        position: absolute;
+        left: 0;
+        transform: translateY(-50%);
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        font-size: 0.78rem;
+        color: var(--text-primary);
+        white-space: nowrap;
+      }
+      .flag::before {
+        content: "";
+        width: clamp(10px, 3vw, 22px);
+        height: 1px;
+        background: linear-gradient(90deg, var(--milestone), rgba(232,198,90,0.3));
+        margin-right: 0.1rem;
+      }
+      .flag .fdot {
+        width: 6px; height: 6px; border-radius: 50%;
+        background: var(--milestone);
+        flex: none;
+        box-shadow: 0 0 6px var(--milestone-halo);
+      }
+      .flag .ftext { overflow: hidden; text-overflow: ellipsis; max-width: 150px; }
+      .flag .fyr { color: var(--text-muted); font-size: 0.7rem; }
+
+      /* ══════════════════════════════════════════════════════════════════
+         DIRECTION B — "Inline banners": a slim labeled bar is inserted as a
+         full-width row right above the year that contains the milestone.
+         ══════════════════════════════════════════════════════════════════ */
+      .banner {
+        display: none;
+        grid-column: 1 / -1;
+        align-items: center;
+        gap: 0.5rem;
+        margin: 0.15rem 0;
+        padding-left: 2px;
+      }
+      body[data-dir="B"] .banner { display: flex; }
+      .banner .bline {
+        flex: 1;
+        height: 1px;
+        background: linear-gradient(90deg, rgba(232,198,90,0.5), rgba(232,198,90,0.05));
+      }
+      .banner .btext {
+        font-size: 0.75rem;
+        color: var(--milestone);
+        letter-spacing: 0.02em;
+        white-space: nowrap;
+        font-weight: 500;
+      }
+      .banner .btext .byr { color: var(--text-muted); font-weight: 400; }
+
+      /* ══════════════════════════════════════════════════════════════════
+         DIRECTION C — "Quiet dots + legend": grid stays pure. Milestones are
+         only gold pinned dots (hover to see label). A separate timeline
+         legend below lists them in order — the shareable "story".
+         ══════════════════════════════════════════════════════════════════ */
+      .timeline {
+        display: none;
+        max-width: 900px;
+        margin: 1.75rem auto 0;
+        border-top: 1px solid rgba(255, 255, 255, 0.08);
+        padding-top: 1.25rem;
+      }
+      body[data-dir="C"] .timeline { display: block; }
+      .timeline h2 {
+        font-family: var(--font-serif);
+        font-weight: 400;
+        font-size: 1rem;
+        color: var(--text-muted);
+        text-align: center;
+        margin-bottom: 1rem;
+      }
+      .tl-list {
+        display: flex;
+        flex-direction: column;
+        gap: 0;
+        max-width: 560px;
+        margin: 0 auto;
+      }
+      .tl-item {
+        display: grid;
+        grid-template-columns: 64px 1fr;
+        gap: 1rem;
+        align-items: baseline;
+        padding: 0.55rem 0;
+        border-bottom: 1px dashed rgba(255, 255, 255, 0.07);
+        position: relative;
+      }
+      .tl-item .tl-age {
+        font-family: var(--font-serif);
+        color: var(--accent-gold);
+        font-size: 1rem;
+        text-align: right;
+      }
+      .tl-item .tl-label { font-size: 0.95rem; }
+      .tl-item .tl-sub { color: var(--text-muted); font-size: 0.75rem; }
+
+      /* directions B and C: single-column grid-wrap */
+      body:not([data-dir="A"]) .grid-wrap { display: block; }
+
+      .empty-state {
+        text-align: center;
+        color: var(--text-muted);
+        padding: 3rem 1rem;
+        font-style: italic;
+        font-family: var(--font-serif);
+      }
+
+      footer {
+        max-width: 900px;
+        margin: 3rem auto 0;
+        text-align: center;
+        color: var(--text-muted);
+        font-size: 0.8rem;
+      }
+      footer a { color: var(--accent-gold); }
+      .privacy { margin-bottom: 0.5rem; }
+
+      @media (max-width: 620px) {
+        body[data-dir="A"] .grid-wrap { grid-template-columns: 1fr; }
+        body[data-dir="A"] .gutter { display: none; }
+        body[data-dir="A"] .banner { display: flex; } /* fall back to inline banners on mobile */
+      }
+    </style>
+  </head>
+  <body data-dir="A">
+    <header>
+      <h1>your life in <em>weeks</em></h1>
+      <p class="tagline">Every dot is one week. The gold ones are behind you.</p>
+    </header>
+
+    <!-- Mockup-only switcher -->
+    <div class="mock-banner">
+      <span class="lbl">Direction</span>
+      <button data-set="A" class="active">A · Margin flags</button>
+      <button data-set="B">B · Inline banners</button>
+      <button data-set="C">C · Quiet dots + timeline</button>
+    </div>
+    <p class="mock-note" id="mockNote"></p>
+
+    <div class="controls">
+      <div class="field">
+        <label for="birthday">Your birthday</label>
+        <input type="date" id="birthday" value="1990-05-14" />
+      </div>
+      <div class="field">
+        <label for="lifespan">Lifespan (years)</label>
+        <input type="number" id="lifespan" min="1" max="120" value="90" />
+      </div>
+    </div>
+
+    <!-- Shared milestone add row -->
+    <div class="add-milestone">
+      <p class="hint">Pin a moment to your weeks — or just click any dot on the grid.</p>
+      <div class="field">
+        <label for="ms-label">Milestone</label>
+        <input type="text" id="ms-label" placeholder="started school" maxlength="40" />
+      </div>
+      <div class="field">
+        <label for="ms-date">When</label>
+        <input type="date" id="ms-date" value="1996-09-02" />
+      </div>
+      <button class="btn-add" id="ms-add">+ Pin it</button>
+    </div>
+
+    <!-- Chips: the added milestones, removable -->
+    <div class="chips" id="chips"></div>
+
+    <div class="grid-wrap">
+      <div class="grid-meta">
+        <span>each row = one year (52 weeks)</span>
+        <span id="grid-span"></span>
+      </div>
+      <div class="grid" id="grid" role="img" aria-label="Life in weeks grid with milestones"></div>
+      <div class="gutter" id="gutter" aria-hidden="true"></div>
+    </div>
+
+    <!-- Direction C timeline legend -->
+    <div class="timeline" id="timeline">
+      <h2>your milestones, in order</h2>
+      <div class="tl-list" id="tl-list"></div>
+    </div>
+
+    <footer>
+      <p class="privacy">
+        Everything stays in your browser. Your milestones live only in this
+        page's URL so you can bookmark or share it — never sent anywhere.
+      </p>
+      <p>a <a href="https://danbing.app">danbing.app</a> toy</p>
+    </footer>
+
+    <script>
+      /* ── Mockup engine — NOT production code. Demonstrates the 3 directions
+         with realistic seeded milestones and live add/remove/click states. ── */
+      const WEEKS_PER_YEAR = 52;
+      const MS_PER_WEEK = 7 * 24 * 60 * 60 * 1000;
+      const $ = (id) => document.getElementById(id);
+
+      // Seed a plausible life story so mockups feel real, not lorem.
+      let milestones = [
+        { label: "started school", date: "1996-09-02" },
+        { label: "moved to Berlin", date: "2013-03-18" },
+        { label: "met her", date: "2017-06-05" },
+        { label: "first kid", date: "2021-11-22" },
+      ];
+
+      const notes = {
+        A: "A · Margin flags — labels sit in a right gutter, tied to their row by a thin gold rule. Reads like a book's margin notes. On mobile it folds into inline banners.",
+        B: "B · Inline banners — a slim labeled bar is woven into the grid right above the milestone year. Zero horizontal space cost; great on mobile.",
+        C: "C · Quiet dots + timeline — the grid stays pure (hover a gold dot for its label). A separate ordered timeline below is the shareable 'story of a life'.",
+      };
+
+      const birthdayEl = $("birthday");
+      const lifespanEl = $("lifespan");
+      const gridEl = $("grid");
+      const gutterEl = $("gutter");
+      const chipsEl = $("chips");
+      const tlListEl = $("tl-list");
+
+      let justAddedIdx = null;
+
+      function birthDate() { return new Date(birthdayEl.value + "T00:00:00"); }
+      function weekIndexOf(dateStr) {
+        const d = new Date(dateStr + "T00:00:00");
+        return Math.floor((d.getTime() - birthDate().getTime()) / MS_PER_WEEK);
+      }
+      function ageAt(dateStr) {
+        return Math.floor(weekIndexOf(dateStr) / WEEKS_PER_YEAR);
+      }
+      function fmtYear(dateStr) { return dateStr.slice(0, 4); }
+
+      function render() {
+        const lifespan = Math.min(120, Math.max(1, Number(lifespanEl.value) || 90));
+        const totalWeeks = lifespan * WEEKS_PER_YEAR;
+        const lived = Math.max(0, Math.floor((Date.now() - birthDate().getTime()) / MS_PER_WEEK));
+
+        // map weekIndex -> milestone (for dot marking + tooltip)
+        const byWeek = new Map();
+        milestones.forEach((m, i) => {
+          const wi = weekIndexOf(m.date);
+          if (wi >= 0 && wi < totalWeeks) byWeek.set(wi, { ...m, i });
+        });
+
+        // Build dots. For direction B we splice a full-width banner row before
+        // the first week of any year that contains a milestone.
+        const dir = document.body.dataset.dir;
+        const frag = document.createDocumentFragment();
+        const bannerYears = new Map(); // year -> milestone (first in that year)
+        if (dir === "B") {
+          milestones.forEach((m) => {
+            const yr = ageAt(m.date);
+            if (!bannerYears.has(yr)) bannerYears.set(yr, m);
+          });
+        }
+
+        for (let i = 0; i < totalWeeks; i++) {
+          // insert banner at the start of a year row (direction B)
+          if (dir === "B" && i % WEEKS_PER_YEAR === 0) {
+            const yr = i / WEEKS_PER_YEAR;
+            if (bannerYears.has(yr)) {
+              const m = bannerYears.get(yr);
+              const banner = document.createElement("div");
+              banner.className = "banner";
+              banner.innerHTML =
+                `<span class="btext">${escapeHtml(m.label)} <span class="byr">· age ${yr}</span></span><span class="bline"></span>`;
+              frag.appendChild(banner);
+            }
+          }
+
+          const dot = document.createElement("div");
+          let cls = i < lived - 1 ? "wk lived" : i === lived - 1 ? "wk current" : "wk";
+          if (byWeek.has(i)) {
+            const m = byWeek.get(i);
+            cls = "wk milestone";
+            dot.dataset.label = m.label;
+            dot.tabIndex = 0;
+            dot.setAttribute("role", "button");
+            dot.setAttribute("aria-label", `Milestone: ${m.label}, age ${ageAt(m.date)}. Activate to remove.`);
+            if (m.i === justAddedIdx) cls += " just-added";
+            dot.addEventListener("click", () => removeMilestone(m.i));
+            dot.addEventListener("keydown", (e) => {
+              if (e.key === "Enter" || e.key === " ") { e.preventDefault(); removeMilestone(m.i); }
+            });
+          } else {
+            // clicking an empty dot pre-fills the add form with that week's date
+            dot.addEventListener("click", () => prefillFromWeek(i));
+          }
+          dot.className = cls;
+          frag.appendChild(dot);
+        }
+        gridEl.replaceChildren(frag);
+        justAddedIdx = null;
+
+        $("grid-span").textContent = `${lifespan} years · ${totalWeeks.toLocaleString()} weeks`;
+
+        renderChips();
+        if (dir === "A") renderGutter(totalWeeks);
+        if (dir === "C") renderTimeline();
+      }
+
+      function renderChips() {
+        chipsEl.replaceChildren();
+        const sorted = [...milestones]
+          .map((m, i) => ({ ...m, i }))
+          .sort((a, b) => a.date.localeCompare(b.date));
+        sorted.forEach((m) => {
+          const chip = document.createElement("span");
+          chip.className = "chip";
+          chip.innerHTML =
+            `<span class="dot"></span>${escapeHtml(m.label)} <span class="yr">age ${ageAt(m.date)}</span>` +
+            `<button aria-label="Remove ${escapeHtml(m.label)}">×</button>`;
+          chip.querySelector("button").addEventListener("click", () => removeMilestone(m.i));
+          chipsEl.appendChild(chip);
+        });
+      }
+
+      function renderGutter(totalWeeks) {
+        gutterEl.replaceChildren();
+        // Position each flag vertically to match its week's row center.
+        // Rows = ceil(totalWeeks / 52). We approximate row height off the grid.
+        const rows = Math.ceil(totalWeeks / WEEKS_PER_YEAR);
+        const gridH = gridEl.getBoundingClientRect().height || 1;
+        const rowH = gridH / rows;
+        milestones.forEach((m) => {
+          const wi = weekIndexOf(m.date);
+          if (wi < 0 || wi >= totalWeeks) return;
+          const row = Math.floor(wi / WEEKS_PER_YEAR);
+          const y = rowH * (row + 0.5);
+          const flag = document.createElement("div");
+          flag.className = "flag";
+          flag.style.top = y + "px";
+          flag.innerHTML =
+            `<span class="fdot"></span><span class="ftext">${escapeHtml(m.label)} <span class="fyr">· ${ageAt(m.date)}</span></span>`;
+          gutterEl.appendChild(flag);
+        });
+      }
+
+      function renderTimeline() {
+        tlListEl.replaceChildren();
+        const sorted = [...milestones].sort((a, b) => a.date.localeCompare(b.date));
+        sorted.forEach((m) => {
+          const row = document.createElement("div");
+          row.className = "tl-item";
+          row.innerHTML =
+            `<span class="tl-age">age ${ageAt(m.date)}</span>` +
+            `<span><span class="tl-label">${escapeHtml(m.label)}</span> ` +
+            `<span class="tl-sub">· ${fmtYear(m.date)}</span></span>`;
+          tlListEl.appendChild(row);
+        });
+      }
+
+      function addMilestone() {
+        const label = $("ms-label").value.trim();
+        const date = $("ms-date").value;
+        if (!label || !date) return;
+        milestones.push({ label, date });
+        justAddedIdx = milestones.length - 1;
+        $("ms-label").value = "";
+        render();
+      }
+
+      function removeMilestone(i) {
+        milestones.splice(i, 1);
+        render();
+      }
+
+      function prefillFromWeek(i) {
+        const d = new Date(birthDate().getTime() + i * MS_PER_WEEK);
+        $("ms-date").value = d.toISOString().slice(0, 10);
+        $("ms-label").focus();
+      }
+
+      function escapeHtml(s) {
+        return s.replace(/[&<>"']/g, (c) =>
+          ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+      }
+
+      // switcher
+      document.querySelectorAll(".mock-banner button").forEach((b) => {
+        b.addEventListener("click", () => {
+          document.querySelectorAll(".mock-banner button").forEach((x) => x.classList.remove("active"));
+          b.classList.add("active");
+          document.body.dataset.dir = b.dataset.set;
+          $("mockNote").textContent = notes[b.dataset.set];
+          render();
+        });
+      });
+
+      $("ms-add").addEventListener("click", addMilestone);
+      $("ms-label").addEventListener("keydown", (e) => { if (e.key === "Enter") addMilestone(); });
+      birthdayEl.addEventListener("input", render);
+      lifespanEl.addEventListener("input", render);
+      window.addEventListener("resize", () => { if (document.body.dataset.dir === "A") render(); });
+
+      $("mockNote").textContent = notes.A;
+      render();
+    </script>
+  </body>
+</html>

@@ -1,0 +1,753 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>weeks — share as PNG snapshot (mockup)</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Libre+Baskerville:ital@0;1&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      /* ── Design tokens (echo the live site + danbing.app portfolio) ─────── */
+      :root {
+        --bg-page: #1a1a1f;
+        --text-primary: #f0f0f0;
+        --text-muted: rgba(255, 255, 255, 0.45);
+        --accent-gold: #c9a84c;
+        --dot-lived: #c9a84c;
+        --dot-current: #f5f0e8;
+        --dot-future: rgba(255, 255, 255, 0.12);
+        --font-display: "DM Sans", system-ui, sans-serif;
+        --font-serif: "Libre Baskerville", Georgia, serif;
+      }
+
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+
+      body {
+        background-color: var(--bg-page);
+        background-image: radial-gradient(
+          circle,
+          rgba(255, 255, 255, 0.04) 1px,
+          transparent 1px
+        );
+        background-size: 32px 32px;
+        color: var(--text-primary);
+        font-family: var(--font-display);
+        line-height: 1.5;
+        min-height: 100vh;
+        padding: clamp(1.5rem, 4vw, 3rem);
+      }
+
+      /* ── Mockup scaffolding (explanatory chrome, NOT part of the product) ── */
+      .mockup-note {
+        max-width: 900px;
+        margin: 0 auto 2.5rem;
+        border: 1px dashed rgba(201, 168, 76, 0.4);
+        border-radius: 12px;
+        padding: 1rem 1.25rem;
+        font-size: 0.85rem;
+        color: var(--text-muted);
+      }
+      .mockup-note strong { color: var(--accent-gold); font-weight: 500; }
+      .mockup-note code {
+        font-family: ui-monospace, monospace;
+        color: var(--text-primary);
+      }
+      .mockup-note p + p { margin-top: 0.5rem; }
+
+      header { max-width: 900px; margin: 0 auto 2rem; text-align: center; }
+      h1 {
+        font-family: var(--font-serif);
+        font-weight: 400;
+        font-size: clamp(2rem, 6vw, 3.25rem);
+        letter-spacing: -0.01em;
+      }
+      h1 em { color: var(--accent-gold); }
+      .tagline {
+        color: var(--text-muted);
+        margin-top: 0.5rem;
+        font-size: clamp(0.95rem, 2.5vw, 1.1rem);
+      }
+
+      /* ── Live stats (mirrors src/index.html) ───────────────────────────── */
+      .stats {
+        max-width: 900px;
+        margin: 0 auto 1.25rem;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+        gap: 1rem;
+      }
+      .stat {
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 12px;
+        padding: 1rem 1.25rem;
+        text-align: center;
+      }
+      .stat .value {
+        font-family: var(--font-serif);
+        font-size: clamp(1.5rem, 4vw, 2.25rem);
+        color: var(--accent-gold);
+      }
+      .stat .label {
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--text-muted);
+        margin-top: 0.25rem;
+      }
+
+      /* The action row sits just under the stats: quiet, right-aligned. */
+      .action-row {
+        max-width: 900px;
+        margin: 0 auto 2rem;
+        display: flex;
+        justify-content: flex-end;
+        gap: 0.75rem;
+      }
+
+      /* ── The share button (primary product affordance) ─────────────────── */
+      .btn {
+        font-family: var(--font-display);
+        font-size: 0.9rem;
+        font-weight: 500;
+        letter-spacing: 0.01em;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        padding: 0.6rem 1.1rem;
+        border-radius: 999px;
+        cursor: pointer;
+        transition: transform 0.15s ease, background 0.2s ease,
+          border-color 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+      }
+      .btn svg { width: 16px; height: 16px; }
+      .btn:active { transform: translateY(1px); }
+      .btn:focus-visible {
+        outline: 2px solid var(--accent-gold);
+        outline-offset: 2px;
+      }
+      .btn[disabled] { opacity: 0.55; cursor: default; pointer-events: none; }
+      .btn-share {
+        background: transparent;
+        color: var(--accent-gold);
+        border: 1px solid rgba(201, 168, 76, 0.55);
+      }
+      .btn-share:hover {
+        background: rgba(201, 168, 76, 0.1);
+        border-color: var(--accent-gold);
+        box-shadow: 0 0 0 4px rgba(201, 168, 76, 0.06);
+      }
+
+      /* ── Miniature life grid (so the mockup looks like the real page) ───── */
+      .grid-wrap { max-width: 900px; margin: 0 auto; }
+      .grid-meta {
+        display: flex;
+        justify-content: space-between;
+        color: var(--text-muted);
+        font-size: 0.8rem;
+        margin-bottom: 0.75rem;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(52, 1fr);
+        gap: clamp(2px, 0.4vw, 4px);
+      }
+      .wk { aspect-ratio: 1; border-radius: 50%; background: var(--dot-future); }
+      .wk.lived { background: var(--dot-lived); }
+      .wk.current {
+        background: var(--dot-current);
+        box-shadow: 0 0 0 2px var(--accent-gold);
+      }
+
+      /* ── Share sheet overlay (the preview moment) ──────────────────────── */
+      .overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(10, 10, 12, 0.72);
+        backdrop-filter: blur(6px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: clamp(1rem, 4vw, 2.5rem);
+        z-index: 50;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.22s ease;
+      }
+      .overlay.open { opacity: 1; pointer-events: auto; }
+
+      .sheet {
+        width: min(460px, 100%);
+        background: #202027;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 18px;
+        padding: 1.5rem;
+        box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
+        transform: translateY(16px) scale(0.98);
+        transition: transform 0.24s cubic-bezier(0.2, 0.8, 0.2, 1);
+        max-height: 100%;
+        overflow-y: auto;
+      }
+      .overlay.open .sheet { transform: translateY(0) scale(1); }
+
+      .sheet-head {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        margin-bottom: 1rem;
+      }
+      .sheet-head h2 {
+        font-family: var(--font-serif);
+        font-weight: 400;
+        font-size: 1.25rem;
+      }
+      .sheet-close {
+        background: none;
+        border: none;
+        color: var(--text-muted);
+        font-size: 1.5rem;
+        line-height: 1;
+        cursor: pointer;
+        padding: 0.2rem 0.4rem;
+        border-radius: 8px;
+      }
+      .sheet-close:hover { color: var(--text-primary); }
+
+      /* Format toggle: which snapshot layout to render. Three real answers to
+         the proposal's open question — full grid, summary card, or both. */
+      .format-toggle {
+        display: inline-flex;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 999px;
+        padding: 3px;
+        margin-bottom: 1.1rem;
+        width: 100%;
+      }
+      .format-toggle button {
+        flex: 1;
+        font-family: var(--font-display);
+        font-size: 0.8rem;
+        font-weight: 500;
+        color: var(--text-muted);
+        background: transparent;
+        border: none;
+        border-radius: 999px;
+        padding: 0.45rem 0.5rem;
+        cursor: pointer;
+        transition: background 0.18s ease, color 0.18s ease;
+      }
+      .format-toggle button[aria-pressed="true"] {
+        background: var(--accent-gold);
+        color: #201a08;
+      }
+
+      /* The canvas preview — this IS the PNG, rendered at 1:1 then scaled.
+         Aspect ratio flips with the chosen format so the preview frame always
+         matches the exported bitmap exactly. */
+      .preview {
+        position: relative;
+        border-radius: 12px;
+        overflow: hidden;
+        background: var(--bg-page);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        margin-bottom: 1.1rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: aspect-ratio 0.24s ease;
+      }
+      .preview[data-ratio="portrait"] { aspect-ratio: 4 / 5; }
+      .preview[data-ratio="square"]   { aspect-ratio: 1 / 1; }
+      .preview canvas {
+        width: 100%;
+        height: 100%;
+        display: block;
+        object-fit: contain;
+      }
+      /* Rendering shimmer, shown briefly while the canvas paints. */
+      .preview.rendering::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(
+          100deg,
+          transparent 30%,
+          rgba(201, 168, 76, 0.08) 50%,
+          transparent 70%
+        );
+        transform: translateX(-100%);
+        animation: shimmer 0.9s ease-in-out infinite;
+      }
+      @keyframes shimmer { to { transform: translateX(100%); } }
+
+      .sheet-actions { display: flex; flex-direction: column; gap: 0.6rem; }
+      .btn-primary {
+        justify-content: center;
+        background: var(--accent-gold);
+        color: #201a08;
+        border: 1px solid var(--accent-gold);
+        font-weight: 700;
+        width: 100%;
+      }
+      .btn-primary:hover { background: #d8b85c; }
+      .btn-secondary {
+        justify-content: center;
+        background: transparent;
+        color: var(--text-primary);
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        width: 100%;
+      }
+      .btn-secondary:hover { background: rgba(255, 255, 255, 0.06); }
+      .btn-secondary[hidden] { display: none; }
+
+      .sheet-hint {
+        font-size: 0.72rem;
+        color: var(--text-muted);
+        text-align: center;
+        margin-top: 0.4rem;
+      }
+      .sheet-hint svg {
+        width: 12px; height: 12px; vertical-align: -1px;
+        margin-right: 2px; color: var(--accent-gold);
+      }
+
+      /* toast confirmation */
+      .toast {
+        position: fixed;
+        bottom: 1.5rem;
+        left: 50%;
+        transform: translateX(-50%) translateY(20px);
+        background: #2a2a32;
+        border: 1px solid rgba(201, 168, 76, 0.4);
+        color: var(--text-primary);
+        font-size: 0.85rem;
+        padding: 0.6rem 1.1rem;
+        border-radius: 999px;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.2s ease, transform 0.2s ease;
+        z-index: 60;
+      }
+      .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+    </style>
+  </head>
+  <body>
+    <div class="mockup-note">
+      <p>
+        <strong>Mockup — Share as PNG snapshot.</strong> The dashed box is
+        explanatory chrome, not part of the product. Tap
+        <strong>Save a snapshot</strong> below to open the share sheet.
+      </p>
+      <p>
+        The preview inside the sheet is a <strong>real
+        <code>&lt;canvas&gt;</code> render</strong> — the exact bitmap that
+        <code>Download PNG</code> saves — so this demonstrates the actual
+        client-side approach (no backend). The toggle shows the
+        <strong>three candidate layouts</strong> that answer the proposal's open
+        question: <strong>Full grid</strong>, <strong>Summary card</strong>, and
+        <strong>Both</strong> (grid + hero stat in one image). The preview frame
+        re-shapes to match each layout's export dimensions.
+      </p>
+    </div>
+
+    <header>
+      <h1>your life in <em>weeks</em></h1>
+      <p class="tagline">Every dot is one week. The gold ones are behind you.</p>
+    </header>
+
+    <!-- Live stats (mirrors src/index.html) -->
+    <section class="stats" id="stats">
+      <div class="stat">
+        <div class="value" id="stat-lived">1,806</div>
+        <div class="label">weeks lived</div>
+      </div>
+      <div class="stat">
+        <div class="value" id="stat-remaining">2,874</div>
+        <div class="label">weeks remaining</div>
+      </div>
+      <div class="stat">
+        <div class="value" id="stat-pct">38.6%</div>
+        <div class="label">% elapsed</div>
+      </div>
+    </section>
+
+    <!-- The new affordance -->
+    <div class="action-row">
+      <button class="btn btn-share" id="open-share" aria-haspopup="dialog">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M12 15V3" />
+          <path d="m7 8 5-5 5 5" />
+          <path d="M5 15v4a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-4" />
+        </svg>
+        Save a snapshot
+      </button>
+    </div>
+
+    <div class="grid-wrap">
+      <div class="grid-meta">
+        <span>each row = one year (52 weeks)</span>
+        <span>90 years · 4,680 weeks</span>
+      </div>
+      <div class="grid" id="grid" role="img" aria-label="Life in weeks grid"></div>
+    </div>
+
+    <!-- ── Share sheet ─────────────────────────────────────────────────── -->
+    <div class="overlay" id="overlay" role="dialog" aria-modal="true"
+      aria-labelledby="sheet-title">
+      <div class="sheet">
+        <div class="sheet-head">
+          <h2 id="sheet-title">Share your snapshot</h2>
+          <button class="sheet-close" id="close-share" aria-label="Close">×</button>
+        </div>
+
+        <div class="format-toggle" role="group" aria-label="Snapshot layout">
+          <button id="fmt-full" aria-pressed="true">Full grid</button>
+          <button id="fmt-summary" aria-pressed="false">Summary card</button>
+          <button id="fmt-both" aria-pressed="false">Both</button>
+        </div>
+
+        <div class="preview" id="preview" data-ratio="portrait">
+          <canvas id="snap" width="1080" height="1350"></canvas>
+        </div>
+
+        <div class="sheet-actions">
+          <button class="btn btn-primary" id="download">Download PNG</button>
+          <button class="btn btn-secondary" id="native-share" hidden>Share…</button>
+          <p class="sheet-hint">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+              aria-hidden="true">
+              <rect x="3" y="11" width="18" height="11" rx="2" />
+              <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+            </svg>
+            Rendered entirely in your browser. Your birthday is never sent anywhere.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="toast" id="toast">Snapshot saved ✓</div>
+
+    <script>
+      /* ─────────────────────────────────────────────────────────────────────
+         Mockup logic. A fixed sample person keeps the mockup self-contained.
+         In production these values come straight from the live render() state
+         (lived / remaining / pct / lifespanYears), so the snapshot always
+         matches what the visitor is looking at.
+      ───────────────────────────────────────────────────────────────────── */
+      const SAMPLE = {
+        birthday: "1990-09-12",
+        lifespanYears: 90,
+        lived: 1806,
+        remaining: 2874,
+        pct: 38.6,
+        weeksPerYear: 52,
+      };
+      const totalWeeks = SAMPLE.lifespanYears * SAMPLE.weeksPerYear;
+
+      /* Build the on-page mini grid so the mockup reads like the real site. */
+      const gridEl = document.getElementById("grid");
+      (function buildPageGrid() {
+        const frag = document.createDocumentFragment();
+        for (let i = 0; i < totalWeeks; i++) {
+          const d = document.createElement("div");
+          d.className =
+            i < SAMPLE.lived - 1 ? "wk lived"
+            : i === SAMPLE.lived - 1 ? "wk current"
+            : "wk";
+          frag.appendChild(d);
+        }
+        gridEl.replaceChildren(frag);
+      })();
+
+      /* ── Canvas snapshot renderer ─────────────────────────────────────────
+         Three layouts share one branded frame (title, dot-grid texture,
+         footer with wordmark + URL). Each layout has its own export size so
+         the exported PNG is always correctly proportioned:
+           • "full"    — 1080×1350 (4:5). The entire life grid at fitting density.
+           • "summary" — 1080×1080 (1:1). A big hero % + a compact decade band.
+           • "both"    — 1080×1350 (4:5). Hero stat band on top, full grid below.
+         The canvas is the single source of truth for preview AND download.
+      ─────────────────────────────────────────────────────────────────────── */
+      const canvas = document.getElementById("snap");
+      const ctx = canvas.getContext("2d");
+      const COLORS = {
+        bg: "#1a1a1f",
+        text: "#f0f0f0",
+        muted: "rgba(255,255,255,0.45)",
+        gold: "#c9a84c",
+        lived: "#c9a84c",
+        current: "#f5f0e8",
+        future: "rgba(255,255,255,0.12)",
+      };
+
+      // Per-format export size + preview aspect ratio.
+      const FORMATS = {
+        full:    { w: 1080, h: 1350, ratio: "portrait" },
+        summary: { w: 1080, h: 1080, ratio: "square" },
+        both:    { w: 1080, h: 1350, ratio: "portrait" },
+      };
+
+      function drawFrame(W, H) {
+        ctx.fillStyle = COLORS.bg;
+        ctx.fillRect(0, 0, W, H);
+        // subtle dot-grid texture
+        ctx.fillStyle = "rgba(255,255,255,0.04)";
+        for (let y = 0; y < H; y += 40) {
+          for (let x = 0; x < W; x += 40) {
+            ctx.beginPath();
+            ctx.arc(x, y, 1.1, 0, Math.PI * 2);
+            ctx.fill();
+          }
+        }
+      }
+
+      function drawTitle(W, baseline) {
+        ctx.textAlign = "left";
+        ctx.fillStyle = COLORS.text;
+        ctx.font = "400 60px 'Libre Baskerville', Georgia, serif";
+        const pre = "your life in ";
+        ctx.fillText(pre, 80, baseline);
+        const w = ctx.measureText(pre).width;
+        ctx.fillStyle = COLORS.gold;
+        ctx.font = "italic 400 60px 'Libre Baskerville', Georgia, serif";
+        ctx.fillText("weeks", 80 + w, baseline);
+      }
+
+      function drawFooter(W, H) {
+        ctx.textAlign = "left";
+        ctx.fillStyle = COLORS.muted;
+        ctx.font = "500 26px 'DM Sans', sans-serif";
+        ctx.fillText("weeks.danbing.app", 80, H - 70);
+        ctx.textAlign = "right";
+        ctx.fillText(
+          `${SAMPLE.pct}% elapsed · ${SAMPLE.lifespanYears}-year life`,
+          W - 80, H - 70
+        );
+        ctx.textAlign = "left";
+      }
+
+      // The full 52×N life grid, fit into a given rectangle.
+      function drawLifeGrid(left, right, top, bottom) {
+        const cols = SAMPLE.weeksPerYear;
+        const rows = SAMPLE.lifespanYears;
+        const gap = 3;
+        const cell = Math.min(
+          (right - left - gap * (cols - 1)) / cols,
+          (bottom - top - gap * (rows - 1)) / rows
+        );
+        const r = cell / 2;
+        // center vertically within the band
+        const gridH = rows * cell + (rows - 1) * gap;
+        const oy = top + Math.max(0, (bottom - top - gridH) / 2);
+        for (let i = 0; i < totalWeeks; i++) {
+          const col = i % cols, row = Math.floor(i / cols);
+          const cx = left + col * (cell + gap) + r;
+          const cy = oy + row * (cell + gap) + r;
+          ctx.fillStyle =
+            i === SAMPLE.lived - 1 ? COLORS.current
+            : i < SAMPLE.lived - 1 ? COLORS.lived
+            : COLORS.future;
+          ctx.beginPath();
+          ctx.arc(cx, cy, r, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+
+      /* Layout A: the whole grid ------------------------------------------- */
+      function renderFull(W, H) {
+        drawFrame(W, H);
+        drawTitle(W, 150);
+        ctx.fillStyle = COLORS.muted;
+        ctx.font = "500 30px 'DM Sans', sans-serif";
+        ctx.fillText(
+          `${SAMPLE.lived.toLocaleString()} weeks behind me · ` +
+          `${SAMPLE.remaining.toLocaleString()} ahead`,
+          80, 205
+        );
+        drawLifeGrid(80, W - 80, 260, H - 130);
+        drawFooter(W, H);
+      }
+
+      /* Layout B: summary card (big stat + a compact "decades" band) -------- */
+      function renderSummary(W, H) {
+        drawFrame(W, H);
+        drawTitle(W, 140);
+
+        ctx.textAlign = "center";
+        ctx.fillStyle = COLORS.gold;
+        ctx.font = "400 240px 'Libre Baskerville', Georgia, serif";
+        ctx.fillText(`${SAMPLE.pct}%`, W / 2, H / 2 + 10);
+
+        ctx.fillStyle = COLORS.text;
+        ctx.font = "500 40px 'DM Sans', sans-serif";
+        ctx.fillText("of my life, elapsed", W / 2, H / 2 + 85);
+
+        ctx.fillStyle = COLORS.muted;
+        ctx.font = "400 30px 'DM Sans', sans-serif";
+        ctx.fillText(
+          `${SAMPLE.lived.toLocaleString()} weeks lived · ` +
+          `${SAMPLE.remaining.toLocaleString()} to go`,
+          W / 2, H / 2 + 140
+        );
+
+        // A slim decade band: one dot per year, 45 per row.
+        const dotR = 9, dgap = 22, perRow = 45;
+        const bandW = perRow * dgap - dgap;
+        const startX = (W - bandW) / 2;
+        const startY = H / 2 + 210;
+        const livedYears = Math.floor(SAMPLE.lived / SAMPLE.weeksPerYear);
+        for (let y = 0; y < SAMPLE.lifespanYears; y++) {
+          const col = y % perRow, row = Math.floor(y / perRow);
+          const cx = startX + col * dgap;
+          const cy = startY + row * dgap;
+          ctx.fillStyle = y === livedYears ? COLORS.current
+            : y < livedYears ? COLORS.lived : COLORS.future;
+          ctx.beginPath();
+          ctx.arc(cx, cy, dotR, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.textAlign = "left";
+        drawFooter(W, H);
+      }
+
+      /* Layout C: both — hero stat band on top, full grid below ------------ */
+      function renderBoth(W, H) {
+        drawFrame(W, H);
+        drawTitle(W, 140);
+
+        // Hero stat band (compact, left-aligned to match the title)
+        ctx.textAlign = "left";
+        ctx.fillStyle = COLORS.gold;
+        ctx.font = "400 130px 'Libre Baskerville', Georgia, serif";
+        ctx.fillText(`${SAMPLE.pct}%`, 80, 300);
+        const pctW = ctx.measureText(`${SAMPLE.pct}%`).width;
+        ctx.fillStyle = COLORS.text;
+        ctx.font = "500 34px 'DM Sans', sans-serif";
+        ctx.fillText("of my life,", 80 + pctW + 30, 262);
+        ctx.fillText("elapsed", 80 + pctW + 30, 300);
+
+        ctx.fillStyle = COLORS.muted;
+        ctx.font = "400 28px 'DM Sans', sans-serif";
+        ctx.fillText(
+          `${SAMPLE.lived.toLocaleString()} weeks lived · ` +
+          `${SAMPLE.remaining.toLocaleString()} to go`,
+          80, 350
+        );
+
+        // Full grid fills the rest of the frame.
+        drawLifeGrid(80, W - 80, 400, H - 130);
+        drawFooter(W, H);
+      }
+
+      /* ── State + wiring ──────────────────────────────────────────────── */
+      let format = "full";
+      const preview = document.getElementById("preview");
+
+      function renderSnapshot() {
+        const f = FORMATS[format];
+        canvas.width = f.w;
+        canvas.height = f.h;
+        preview.setAttribute("data-ratio", f.ratio);
+        if (format === "full") renderFull(f.w, f.h);
+        else if (format === "summary") renderSummary(f.w, f.h);
+        else renderBoth(f.w, f.h);
+      }
+
+      const overlay = document.getElementById("overlay");
+      const openBtn = document.getElementById("open-share");
+      const closeBtn = document.getElementById("close-share");
+      const fmtBtns = {
+        full: document.getElementById("fmt-full"),
+        summary: document.getElementById("fmt-summary"),
+        both: document.getElementById("fmt-both"),
+      };
+      const downloadBtn = document.getElementById("download");
+      const nativeShareBtn = document.getElementById("native-share");
+      const toast = document.getElementById("toast");
+
+      function openSheet() {
+        overlay.classList.add("open");
+        renderSnapshot();
+        closeBtn.focus();
+      }
+      function closeSheet() {
+        overlay.classList.remove("open");
+        openBtn.focus();
+      }
+
+      function setFormat(f) {
+        format = f;
+        for (const key in fmtBtns) {
+          fmtBtns[key].setAttribute("aria-pressed", String(key === f));
+        }
+        renderSnapshot();
+      }
+
+      function showToast(msg) {
+        toast.textContent = msg;
+        toast.classList.add("show");
+        setTimeout(() => toast.classList.remove("show"), 2200);
+      }
+
+      openBtn.addEventListener("click", openSheet);
+      closeBtn.addEventListener("click", closeSheet);
+      overlay.addEventListener("click", (e) => {
+        if (e.target === overlay) closeSheet();
+      });
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape" && overlay.classList.contains("open")) closeSheet();
+      });
+      fmtBtns.full.addEventListener("click", () => setFormat("full"));
+      fmtBtns.summary.addEventListener("click", () => setFormat("summary"));
+      fmtBtns.both.addEventListener("click", () => setFormat("both"));
+
+      downloadBtn.addEventListener("click", () => {
+        canvas.toBlob((blob) => {
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = `my-life-in-weeks-${format}.png`;
+          a.click();
+          URL.revokeObjectURL(url);
+          showToast("Snapshot saved ✓");
+        }, "image/png");
+      });
+
+      // Progressive enhancement: where the platform can share a file (mostly
+      // mobile), offer the native share sheet — the highest-intent path.
+      if (navigator.canShare) {
+        nativeShareBtn.hidden = false;
+        nativeShareBtn.addEventListener("click", () => {
+          canvas.toBlob(async (blob) => {
+            const file = new File([blob], "my-life-in-weeks.png",
+              { type: "image/png" });
+            try {
+              if (navigator.canShare({ files: [file] })) {
+                await navigator.share({
+                  files: [file],
+                  title: "My life in weeks",
+                });
+              }
+            } catch (_) { /* user cancelled */ }
+          }, "image/png");
+        });
+      }
+
+      // Fonts must be loaded before the first canvas draw or text falls back
+      // to a serif/sans default and the export looks off-brand.
+      if (document.fonts && document.fonts.ready) {
+        document.fonts.ready.then(() => {
+          if (overlay.classList.contains("open")) renderSnapshot();
+        });
+      }
+    </script>
+  </body>
+</html>
